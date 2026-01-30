@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frisbee Draft Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+            background-color: #f8fafc;
+        }
+        .touch-target {
+            min-height: 44px;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .active-turn {
+            border-color: #4f46e5;
+            background-color: #eef2ff;
+            ring: 2px;
+            ring-color: #4f46e5;
+        }
+
+        .swap-selected {
+            background-color: #4f46e5 !important;
+            color: white !important;
+            border-color: #4338ca !important;
+        }
+
+        /* Helper for vertical column flow */
+        .roster-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-auto-flow: column;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 font-sans text-slate-800">
+
+    <div class="max-w-md mx-auto space-y-6">
+        <!-- Header -->
+        <header class="text-center">
+            <h1 class="text-2xl font-bold text-indigo-600">🥏 Frisbee Snake Draft</h1>
+            <p id="subHeader" class="text-slate-500 text-sm">Paste the list to begin</p>
+        </header>
+
+        <!-- STEP 1: Paste Input -->
+        <div id="step-1" class="space-y-4">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                <h2 class="font-semibold text-slate-700 mb-3 text-sm uppercase tracking-wider">1. Paste Original Message</h2>
+                <textarea id="rawInput" rows="12" placeholder="Paste WhatsApp message here..." class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner text-sm leading-relaxed"></textarea>
+            </div>
+            <button onclick="processList()" class="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 active:scale-95 transition-transform touch-target">
+                Identify Players
+            </button>
+        </div>
+
+        <!-- STEP 2: Select Captains -->
+        <div id="step-2" class="hidden space-y-4">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                <h2 class="font-semibold text-slate-700 mb-1 text-sm uppercase tracking-wider">2. Select Captains</h2>
+                <p class="text-xs text-slate-400 mb-3">Tap captains (names are sorted A-Z)</p>
+                <div id="captainPool" class="flex flex-wrap gap-2"></div>
+            </div>
+            
+            <div id="selectedCaptainsList" class="space-y-2 hidden">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Selected Captains (Draft Order)</h3>
+                <div id="captainOrder" class="flex flex-col gap-2"></div>
+            </div>
+
+            <button id="startDraftBtn" onclick="startDraft()" class="hidden w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform">
+                Start Snake Draft
+            </button>
+            <button onclick="resetToStep1()" class="w-full py-2 text-slate-400 text-sm font-medium">Back</button>
+        </div>
+
+        <!-- STEP 3: The Draft -->
+        <div id="step-3" class="hidden space-y-6">
+            
+            <div class="flex flex-wrap justify-between items-center bg-white p-2 rounded-xl border border-slate-100 shadow-sm gap-y-2">
+                 <button onclick="resetToStep1()" class="text-[10px] text-slate-400 font-bold px-2 py-1 uppercase tracking-tight">Full Reset</button>
+                 <button id="balancerToggleBtn" onclick="toggleBalancer()" class="hidden text-[10px] text-amber-600 font-bold px-2 py-1 uppercase tracking-tight border border-amber-100 rounded-lg">Enable Balancer</button>
+                 <button onclick="restartSameCaptains()" class="text-[10px] text-indigo-500 font-bold px-2 py-1 uppercase tracking-tight">Redraft</button>
+            </div>
+
+            <!-- Turn Indicator -->
+            <div id="turnIndicator" class="bg-indigo-600 text-white p-4 rounded-2xl shadow-lg text-center animate-pulse">
+                <p class="text-xs uppercase font-bold tracking-widest opacity-80">Current Turn</p>
+                <h2 id="currentPickerName" class="text-xl font-bold">Captain Name</h2>
+            </div>
+
+            <div id="balancerNotice" class="hidden bg-amber-50 border border-amber-200 p-3 rounded-xl text-center">
+                <p class="text-xs text-amber-700 font-medium">⚖️ <strong>Balancer Mode Active</strong></p>
+                <p class="text-[10px] text-amber-600">Tap two players to swap them between teams.</p>
+            </div>
+
+            <div id="poolSection" class="space-y-2">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Available Players (<span id="poolCount">0</span>)</h2>
+                <div id="draftPool" class="flex flex-wrap gap-2"></div>
+            </div>
+
+            <div id="teamRosters" class="space-y-4">
+                <!-- Roster for each captain -->
+            </div>
+
+            <!-- Final Copy Section -->
+            <div id="copySection" class="hidden space-y-3 pt-6 border-t border-slate-200">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest">WhatsApp Output</h2>
+                <div id="previewBox" class="bg-white p-4 rounded-2xl border border-slate-200 text-sm whitespace-pre-wrap font-mono shadow-sm"></div>
+                
+                <button onclick="copyToClipboard()" class="w-full py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                        <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                    </svg>
+                    Copy Teams to WhatsApp
+                </button>
+            </div>
+        </div>
+
+        <!-- Success Toast -->
+        <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-2xl opacity-0 transition-opacity pointer-events-none text-sm z-50 shadow-xl">
+            Copied to clipboard! ✅
+        </div>
+    </div>
+
+    <script>
+        let allPlayers = [];
+        let captains = [];
+        let availablePlayers = [];
+        let teams = {}; // captainIndex -> array of players
+        let draftSequence = [];
+        let currentSequenceIndex = 0;
+        let swapSelection = null; // { teamIdx, playerIdx }
+        let isBalancerActive = false;
+
+        function scrubHiddenChars(str) {
+            if (!str) return "";
+            return str.replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, "").trim();
+        }
+
+        function processList() {
+            const rawText = document.getElementById('rawInput').value;
+            if (!rawText.trim()) return;
+
+            const lines = rawText.split('\n');
+            let tempPlayers = [];
+
+            lines.forEach(line => {
+                let lineClean = scrubHiddenChars(line);
+                if (!lineClean) return;
+                
+                const isPlayerLine = /^\d+[\.\)]/.test(lineClean);
+
+                if (isPlayerLine) {
+                    let name = lineClean.replace(/^\d+[\.\)\s]+/, ''); 
+                    name = name.replace(/\s*\([^)]*\)/g, ''); 
+                    name = name.replace(/50\/50/g, ''); 
+                    
+                    let finalName = scrubHiddenChars(name);
+                    if (finalName) {
+                        tempPlayers.push(finalName);
+                    }
+                }
+            });
+
+            if (tempPlayers.length < 2) {
+                alert("Need at least 2 players to start a draft.");
+                return;
+            }
+
+            allPlayers = [...new Set(tempPlayers)].sort((a, b) => a.localeCompare(b));
+            showStep2();
+        }
+
+        function showStep2() {
+            document.getElementById('step-1').classList.add('hidden');
+            document.getElementById('step-2').classList.remove('hidden');
+            document.getElementById('subHeader').textContent = "Select Captains";
+            
+            captains = [];
+            const container = document.getElementById('captainPool');
+            container.innerHTML = '';
+            
+            allPlayers.forEach((name) => {
+                const btn = document.createElement('button');
+                btn.className = "bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm font-medium shadow-sm transition-all touch-target";
+                btn.textContent = name;
+                btn.onclick = () => toggleCaptain(name, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function toggleCaptain(name, btn) {
+            const idx = captains.indexOf(name);
+            if (idx > -1) {
+                captains.splice(idx, 1);
+                btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600');
+            } else {
+                captains.push(name);
+                btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
+            }
+            
+            const list = document.getElementById('selectedCaptainsList');
+            const startBtn = document.getElementById('startDraftBtn');
+            const orderContainer = document.getElementById('captainOrder');
+            
+            if (captains.length > 0) {
+                list.classList.remove('hidden');
+                startBtn.classList.remove('hidden');
+                orderContainer.innerHTML = captains.map((c, i) => 
+                    `<div class="bg-indigo-50 text-indigo-700 p-2 rounded-lg text-sm font-bold flex justify-between items-center animate-in slide-in-from-top-1 duration-200">
+                        <span>Captain ${i + 1}: ${c}</span>
+                    </div>`
+                ).join('');
+            } else {
+                list.classList.add('hidden');
+                startBtn.classList.add('hidden');
+            }
+        }
+
+        function startDraft() {
+            if (captains.length < 2) {
+                alert("Select at least 2 captains.");
+                return;
+            }
+
+            availablePlayers = allPlayers.filter(p => !captains.includes(p)).sort((a, b) => a.localeCompare(b));
+            
+            teams = {};
+            captains.forEach((c, i) => {
+                teams[i] = [];
+            });
+
+            draftSequence = [];
+            let totalPicks = availablePlayers.length;
+            let round = 0;
+            while (draftSequence.length < totalPicks) {
+                let roundOrder = [];
+                for (let i = 0; i < captains.length; i++) roundOrder.push(i);
+                if (round % 2 !== 0) roundOrder.reverse();
+                
+                roundOrder.forEach(idx => {
+                    if (draftSequence.length < totalPicks) draftSequence.push(idx);
+                });
+                round++;
+            }
+
+            currentSequenceIndex = 0;
+            swapSelection = null;
+            isBalancerActive = false;
+            document.getElementById('step-2').classList.add('hidden');
+            document.getElementById('step-3').classList.remove('hidden');
+            document.getElementById('subHeader').textContent = "Drafting Teams";
+            renderDraftBoard();
+        }
+
+        function toggleBalancer() {
+            isBalancerActive = !isBalancerActive;
+            swapSelection = null;
+            renderDraftBoard();
+        }
+
+        function renderDraftBoard() {
+            const poolContainer = document.getElementById('draftPool');
+            const rosterContainer = document.getElementById('teamRosters');
+            const poolCount = document.getElementById('poolCount');
+            const balancerBtn = document.getElementById('balancerToggleBtn');
+            const draftFinished = currentSequenceIndex >= draftSequence.length;
+
+            poolCount.textContent = availablePlayers.length;
+
+            poolContainer.innerHTML = '';
+            if (!draftFinished) {
+                availablePlayers.forEach((name, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = "bg-white border border-slate-200 px-4 py-3 rounded-xl text-sm font-bold shadow-sm active:scale-95 active:bg-indigo-50 transition-all touch-target";
+                    btn.textContent = name;
+                    btn.onclick = () => makePick(index);
+                    poolContainer.appendChild(btn);
+                });
+                document.getElementById('poolSection').classList.remove('hidden');
+                document.getElementById('balancerNotice').classList.add('hidden');
+                balancerBtn.classList.add('hidden');
+            } else {
+                document.getElementById('poolSection').classList.add('hidden');
+                balancerBtn.classList.remove('hidden');
+                balancerBtn.textContent = isBalancerActive ? "Disable Balancer" : "Enable Balancer";
+                
+                if (isBalancerActive) {
+                    document.getElementById('balancerNotice').classList.remove('hidden');
+                    balancerBtn.classList.add('bg-amber-600', 'text-white');
+                    balancerBtn.classList.remove('text-amber-600');
+                } else {
+                    document.getElementById('balancerNotice').classList.add('hidden');
+                    balancerBtn.classList.remove('bg-amber-600', 'text-white');
+                    balancerBtn.classList.add('text-amber-600');
+                }
+            }
+
+            if (!draftFinished) {
+                const currentCaptainIdx = draftSequence[currentSequenceIndex];
+                document.getElementById('currentPickerName').textContent = captains[currentCaptainIdx];
+                document.getElementById('turnIndicator').classList.remove('hidden');
+                document.getElementById('copySection').classList.add('hidden');
+            } else {
+                document.getElementById('turnIndicator').classList.add('hidden');
+                document.getElementById('copySection').classList.remove('hidden');
+            }
+
+            rosterContainer.innerHTML = '';
+            captains.forEach((cap, i) => {
+                const isTurn = (!draftFinished && draftSequence[currentSequenceIndex] === i);
+                const div = document.createElement('div');
+                div.className = `bg-white p-4 rounded-2xl border-2 shadow-sm transition-all ${isTurn ? 'border-indigo-500 ring-2 ring-indigo-100' : 'border-slate-100'}`;
+                
+                // Combine captain + players for unified numbering and grid logic
+                const fullRoster = [cap, ...teams[i]];
+                const totalItems = fullRoster.length;
+                const rowsPerCol = Math.ceil(totalItems / 2);
+
+                // Create individual item HTML
+                const itemsHtml = fullRoster.map((name, pIdx) => {
+                    const isCaptain = pIdx === 0;
+                    // Note: teams[i] index is pIdx - 1
+                    const isSelected = !isCaptain && swapSelection && swapSelection.teamIdx === i && swapSelection.playerIdx === (pIdx - 1);
+                    
+                    const commonClasses = "text-[11px] py-1 px-2 border rounded-lg transition-colors overflow-hidden text-ellipsis whitespace-nowrap";
+                    const interactiveClasses = isBalancerActive && !isCaptain ? 'cursor-pointer' : 'cursor-default';
+                    const activeClasses = isSelected ? 'swap-selected' : (isBalancerActive && !isCaptain ? 'bg-slate-50 hover:bg-slate-100 active:bg-slate-200' : 'bg-slate-50/50');
+                    const borderClasses = isCaptain ? 'border-indigo-200 bg-indigo-50 font-bold text-indigo-700' : 'border-slate-100';
+
+                    return `
+                    <div onclick="isBalancerActive && !${isCaptain} && handleRosterClick(${i}, ${pIdx - 1})" 
+                         class="${commonClasses} ${interactiveClasses} ${activeClasses} ${borderClasses}">
+                        <span class="${isSelected || isCaptain ? 'text-indigo-400' : 'text-slate-400'} font-mono text-[9px] mr-1">${pIdx + 1}.</span>${name}
+                    </div>`;
+                }).join('');
+
+                div.innerHTML = `
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-indigo-900 text-sm">Team ${cap}</h3>
+                        <span class="text-[9px] bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full font-bold uppercase">${totalItems} Total</span>
+                    </div>
+                    <div class="roster-grid gap-2" style="grid-template-rows: repeat(${rowsPerCol}, minmax(0, 1fr));">
+                        ${itemsHtml}
+                    </div>
+                `;
+                rosterContainer.appendChild(div);
+            });
+
+            updateFinalOutput();
+        }
+
+        function makePick(index) {
+            if (currentSequenceIndex >= draftSequence.length) return;
+            const player = availablePlayers.splice(index, 1)[0];
+            const captainIdx = draftSequence[currentSequenceIndex];
+            teams[captainIdx].push(player);
+            currentSequenceIndex++;
+            renderDraftBoard();
+        }
+
+        function handleRosterClick(teamIdx, playerIdx) {
+            if (currentSequenceIndex < draftSequence.length || !isBalancerActive) return;
+
+            if (!swapSelection) {
+                swapSelection = { teamIdx, playerIdx };
+            } else {
+                const temp = teams[swapSelection.teamIdx][swapSelection.playerIdx];
+                teams[swapSelection.teamIdx][swapSelection.playerIdx] = teams[teamIdx][playerIdx];
+                teams[teamIdx][playerIdx] = temp;
+                swapSelection = null;
+            }
+            renderDraftBoard();
+        }
+
+        function restartSameCaptains() {
+            if (!confirm("Start the draft over with the same captains? Current teams will be cleared.")) return;
+            startDraft();
+        }
+
+        function updateFinalOutput() {
+            let text = "";
+            captains.forEach((cap, i) => {
+                text += `*Team ${cap}:*\n`;
+                text += `1. ${cap} (C)\n`;
+                teams[i].forEach((p, pIdx) => {
+                    text += `${pIdx + 2}. ${p}\n`;
+                });
+                text += "\n";
+            });
+            document.getElementById('previewBox').textContent = text.trim();
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('previewBox').textContent;
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            const toast = document.getElementById('toast');
+            toast.style.opacity = '1';
+            setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+        }
+
+        function resetToStep1() {
+            if (currentSequenceIndex > 0 && currentSequenceIndex < draftSequence.length) {
+                if(!confirm("Cancel draft and start over?")) return;
+            }
+            document.getElementById('step-1').classList.remove('hidden');
+            document.getElementById('step-2').classList.add('hidden');
+            document.getElementById('step-3').classList.add('hidden');
+            document.getElementById('subHeader').textContent = "Paste the list to begin";
+        }
+    </script>
+</body>
+</html>
