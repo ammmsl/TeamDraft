@@ -16,17 +16,10 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        .active-turn {
-            border-color: #4f46e5;
-            background-color: #eef2ff;
-            ring: 2px;
-            ring-color: #4f46e5;
-        }
-
         .swap-selected {
-            background-color: #4f46e5 !important;
+            background-color: #1e1b4b !important;
             color: white !important;
-            border-color: #4338ca !important;
+            border-color: #1e1b4b !important;
         }
 
         /* Helper for vertical column flow */
@@ -81,12 +74,13 @@
             
             <div class="flex flex-wrap justify-between items-center bg-white p-2 rounded-xl border border-slate-100 shadow-sm gap-y-2">
                  <button onclick="resetToStep1()" class="text-[10px] text-slate-400 font-bold px-2 py-1 uppercase tracking-tight">Full Reset</button>
+                 <button id="undoBtn" onclick="undoPick()" class="hidden text-[10px] text-rose-500 font-bold px-2 py-1 uppercase tracking-tight">Undo Pick</button>
                  <button id="balancerToggleBtn" onclick="toggleBalancer()" class="hidden text-[10px] text-amber-600 font-bold px-2 py-1 uppercase tracking-tight border border-amber-100 rounded-lg">Enable Balancer</button>
                  <button onclick="restartSameCaptains()" class="text-[10px] text-indigo-500 font-bold px-2 py-1 uppercase tracking-tight">Redraft</button>
             </div>
 
             <!-- Turn Indicator -->
-            <div id="turnIndicator" class="bg-indigo-600 text-white p-4 rounded-2xl shadow-lg text-center animate-pulse">
+            <div id="turnIndicator" class="text-white p-4 rounded-2xl shadow-lg text-center animate-pulse transition-colors duration-300">
                 <p class="text-xs uppercase font-bold tracking-widest opacity-80">Current Turn</p>
                 <h2 id="currentPickerName" class="text-xl font-bold">Captain Name</h2>
             </div>
@@ -135,6 +129,16 @@
         let currentSequenceIndex = 0;
         let swapSelection = null; // { teamIdx, playerIdx }
         let isBalancerActive = false;
+
+        // Color palettes for teams
+        const teamColorPalette = [
+            { id: 'indigo', main: 'bg-indigo-600', light: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700', active: 'border-indigo-500 ring-indigo-100', num: 'text-indigo-400' },
+            { id: 'rose', main: 'bg-rose-600', light: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-700', active: 'border-rose-500 ring-rose-100', num: 'text-rose-400' },
+            { id: 'emerald', main: 'bg-emerald-600', light: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', active: 'border-emerald-500 ring-emerald-100', num: 'text-emerald-400' },
+            { id: 'amber', main: 'bg-amber-600', light: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', active: 'border-amber-500 ring-amber-100', num: 'text-amber-400' },
+            { id: 'violet', main: 'bg-violet-600', light: 'bg-violet-50', border: 'border-violet-200', text: 'text-violet-700', active: 'border-violet-500 ring-violet-100', num: 'text-violet-400' },
+            { id: 'cyan', main: 'bg-cyan-600', light: 'bg-cyan-50', border: 'border-cyan-200', text: 'text-cyan-700', active: 'border-cyan-500 ring-cyan-100', num: 'text-cyan-400' }
+        ];
 
         function scrubHiddenChars(str) {
             if (!str) return "";
@@ -210,11 +214,12 @@
             if (captains.length > 0) {
                 list.classList.remove('hidden');
                 startBtn.classList.remove('hidden');
-                orderContainer.innerHTML = captains.map((c, i) => 
-                    `<div class="bg-indigo-50 text-indigo-700 p-2 rounded-lg text-sm font-bold flex justify-between items-center animate-in slide-in-from-top-1 duration-200">
+                orderContainer.innerHTML = captains.map((c, i) => {
+                    const color = teamColorPalette[i % teamColorPalette.length];
+                    return `<div class="${color.light} ${color.text} p-2 rounded-lg text-sm font-bold flex justify-between items-center animate-in slide-in-from-top-1 duration-200">
                         <span>Captain ${i + 1}: ${c}</span>
-                    </div>`
-                ).join('');
+                    </div>`;
+                }).join('');
             } else {
                 list.classList.add('hidden');
                 startBtn.classList.add('hidden');
@@ -268,15 +273,24 @@
             const rosterContainer = document.getElementById('teamRosters');
             const poolCount = document.getElementById('poolCount');
             const balancerBtn = document.getElementById('balancerToggleBtn');
+            const undoBtn = document.getElementById('undoBtn');
+            const turnIndicator = document.getElementById('turnIndicator');
             const draftFinished = currentSequenceIndex >= draftSequence.length;
 
             poolCount.textContent = availablePlayers.length;
+
+            // Show/Hide Undo button
+            if (currentSequenceIndex > 0) {
+                undoBtn.classList.remove('hidden');
+            } else {
+                undoBtn.classList.add('hidden');
+            }
 
             poolContainer.innerHTML = '';
             if (!draftFinished) {
                 availablePlayers.forEach((name, index) => {
                     const btn = document.createElement('button');
-                    btn.className = "bg-white border border-slate-200 px-4 py-3 rounded-xl text-sm font-bold shadow-sm active:scale-95 active:bg-indigo-50 transition-all touch-target";
+                    btn.className = "bg-white border border-slate-200 px-4 py-3 rounded-xl text-sm font-bold shadow-sm active:scale-95 active:bg-slate-50 transition-all touch-target";
                     btn.textContent = name;
                     btn.onclick = () => makePick(index);
                     poolContainer.appendChild(btn);
@@ -302,47 +316,51 @@
 
             if (!draftFinished) {
                 const currentCaptainIdx = draftSequence[currentSequenceIndex];
+                const color = teamColorPalette[currentCaptainIdx % teamColorPalette.length];
+                
                 document.getElementById('currentPickerName').textContent = captains[currentCaptainIdx];
-                document.getElementById('turnIndicator').classList.remove('hidden');
+                turnIndicator.className = `${color.main} text-white p-4 rounded-2xl shadow-lg text-center animate-pulse transition-colors duration-300`;
+                turnIndicator.classList.remove('hidden');
                 document.getElementById('copySection').classList.add('hidden');
             } else {
-                document.getElementById('turnIndicator').classList.add('hidden');
+                turnIndicator.classList.add('hidden');
                 document.getElementById('copySection').classList.remove('hidden');
             }
 
             rosterContainer.innerHTML = '';
             captains.forEach((cap, i) => {
                 const isTurn = (!draftFinished && draftSequence[currentSequenceIndex] === i);
+                const color = teamColorPalette[i % teamColorPalette.length];
                 const div = document.createElement('div');
-                div.className = `bg-white p-4 rounded-2xl border-2 shadow-sm transition-all ${isTurn ? 'border-indigo-500 ring-2 ring-indigo-100' : 'border-slate-100'}`;
                 
-                // Combine captain + players for unified numbering and grid logic
+                div.className = `bg-white p-4 rounded-2xl border-2 shadow-sm transition-all ${isTurn ? `${color.active} ring-2` : 'border-slate-100'}`;
+                
                 const fullRoster = [cap, ...teams[i]];
                 const totalItems = fullRoster.length;
                 const rowsPerCol = Math.ceil(totalItems / 2);
 
-                // Create individual item HTML
                 const itemsHtml = fullRoster.map((name, pIdx) => {
                     const isCaptain = pIdx === 0;
-                    // Note: teams[i] index is pIdx - 1
                     const isSelected = !isCaptain && swapSelection && swapSelection.teamIdx === i && swapSelection.playerIdx === (pIdx - 1);
                     
                     const commonClasses = "text-[11px] py-1 px-2 border rounded-lg transition-colors overflow-hidden text-ellipsis whitespace-nowrap";
                     const interactiveClasses = isBalancerActive && !isCaptain ? 'cursor-pointer' : 'cursor-default';
                     const activeClasses = isSelected ? 'swap-selected' : (isBalancerActive && !isCaptain ? 'bg-slate-50 hover:bg-slate-100 active:bg-slate-200' : 'bg-slate-50/50');
-                    const borderClasses = isCaptain ? 'border-indigo-200 bg-indigo-50 font-bold text-indigo-700' : 'border-slate-100';
+                    
+                    const borderClasses = isCaptain ? `${color.border} ${color.light} font-bold ${color.text}` : 'border-slate-100';
+                    const numClasses = isSelected || isCaptain ? color.num : 'text-slate-400';
 
                     return `
-                    <div onclick="isBalancerActive && !${isCaptain} && handleRosterClick(${i}, ${pIdx - 1})" 
+                    <div onclick="if(isBalancerActive && !${isCaptain}) handleRosterClick(${i}, ${pIdx - 1})" 
                          class="${commonClasses} ${interactiveClasses} ${activeClasses} ${borderClasses}">
-                        <span class="${isSelected || isCaptain ? 'text-indigo-400' : 'text-slate-400'} font-mono text-[9px] mr-1">${pIdx + 1}.</span>${name}
+                        <span class="${numClasses} font-mono text-[9px] mr-1">${pIdx + 1}.</span>${name}
                     </div>`;
                 }).join('');
 
                 div.innerHTML = `
                     <div class="flex justify-between items-center mb-3">
-                        <h3 class="font-bold text-indigo-900 text-sm">Team ${cap}</h3>
-                        <span class="text-[9px] bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full font-bold uppercase">${totalItems} Total</span>
+                        <h3 class="font-bold text-slate-900 text-sm">Team ${cap}</h3>
+                        <span class="text-[9px] ${color.light} ${color.text} px-2 py-0.5 rounded-full font-bold uppercase">${totalItems} Total</span>
                     </div>
                     <div class="roster-grid gap-2" style="grid-template-rows: repeat(${rowsPerCol}, minmax(0, 1fr));">
                         ${itemsHtml}
@@ -360,6 +378,17 @@
             const captainIdx = draftSequence[currentSequenceIndex];
             teams[captainIdx].push(player);
             currentSequenceIndex++;
+            renderDraftBoard();
+        }
+
+        function undoPick() {
+            if (currentSequenceIndex === 0) return;
+            currentSequenceIndex--;
+            const captainIdx = draftSequence[currentSequenceIndex];
+            const undonePlayer = teams[captainIdx].pop();
+            availablePlayers.push(undonePlayer);
+            availablePlayers.sort((a, b) => a.localeCompare(b));
+            swapSelection = null;
             renderDraftBoard();
         }
 
