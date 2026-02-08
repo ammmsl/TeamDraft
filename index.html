@@ -45,6 +45,14 @@
             grid-template-columns: repeat(2, 1fr);
             gap: 24px;
         }
+
+        @keyframes shuffle-blink {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.98); }
+        }
+        .shuffling {
+            animation: shuffle-blink 0.15s ease-in-out infinite;
+        }
     </style>
 </head>
 <body class="p-4 md:p-8 font-sans text-slate-800">
@@ -75,13 +83,34 @@
                 <div id="captainPool" class="flex flex-wrap gap-2"></div>
             </div>
             
-            <div id="selectedCaptainsList" class="space-y-2 hidden">
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Selected Captains (Draft Order)</h3>
-                <div id="captainOrder" class="flex flex-col gap-2"></div>
+            <div id="selectedCaptainsList" class="space-y-4 hidden">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Picker Order</h3>
+                        <button onclick="shuffleCaptains()" class="flex items-center gap-1 text-[10px] bg-indigo-50 px-3 py-1.5 rounded-lg font-bold text-indigo-600 active:scale-90 transition-all border border-indigo-100 shadow-sm">
+                            🎲 Randomize Order
+                        </button>
+                    </div>
+                    <div id="captainOrder" class="flex flex-col gap-2 transition-all duration-300"></div>
+                </div>
+
+                <!-- Draft Protocol Settings -->
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Draft Protocol</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="setProtocol('standard')" id="btn-proto-standard" class="py-2.5 px-3 rounded-xl text-xs font-bold border-2 transition-all">
+                            Standard Snake
+                        </button>
+                        <button onclick="setProtocol('3rr')" id="btn-proto-3rr" class="py-2.5 px-3 rounded-xl text-xs font-bold border-2 transition-all">
+                            3RR Snake
+                        </button>
+                    </div>
+                    <p id="protocolDesc" class="text-[10px] text-slate-400 mt-3 leading-tight text-center px-2"></p>
+                </div>
             </div>
 
             <button id="startDraftBtn" onclick="startDraft()" class="hidden w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform">
-                Start Snake Draft
+                Start Draft
             </button>
             <button onclick="resetToStep1()" class="w-full py-2 text-slate-400 text-sm font-medium">Back</button>
         </div>
@@ -178,6 +207,7 @@
         let currentSequenceIndex = 0;
         let swapSelection = null; // { teamIdx, playerIdx }
         let isBalancerActive = false;
+        let draftProtocol = 'standard'; // 'standard' or '3rr'
 
         const teamColorPalette = [
             { id: 'indigo', main: 'bg-indigo-600', light: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700', active: 'border-indigo-500 ring-indigo-100', num: 'text-indigo-400', hex: '#4f46e5', hexLight: '#eef2ff' },
@@ -227,36 +257,80 @@
             document.getElementById('step-2').classList.remove('hidden');
             document.getElementById('subHeader').textContent = "Select Captains";
             captains = [];
+            setProtocol('standard');
+            renderCaptainSelection();
+        }
+
+        function renderCaptainSelection() {
             const container = document.getElementById('captainPool');
             container.innerHTML = '';
             allPlayers.forEach((name) => {
+                const isSelected = captains.includes(name);
                 const btn = document.createElement('button');
-                btn.className = "bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm font-medium shadow-sm transition-all touch-target";
+                btn.className = `border px-4 py-2 rounded-xl text-sm font-medium shadow-sm transition-all touch-target ${isSelected ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-slate-200'}`;
                 btn.textContent = name;
-                btn.onclick = () => toggleCaptain(name, btn);
+                btn.onclick = () => toggleCaptain(name);
                 container.appendChild(btn);
             });
+            updateCaptainOrderUI();
         }
 
-        function toggleCaptain(name, btn) {
+        function toggleCaptain(name) {
             const idx = captains.indexOf(name);
             if (idx > -1) {
                 captains.splice(idx, 1);
-                btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600');
             } else {
                 captains.push(name);
-                btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
             }
+            renderCaptainSelection();
+        }
+
+        function shuffleCaptains() {
+            const orderContainer = document.getElementById('captainOrder');
+            orderContainer.classList.add('shuffling');
+            
+            setTimeout(() => {
+                for (let i = captains.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [captains[i], captains[j]] = [captains[j], captains[i]];
+                }
+                updateCaptainOrderUI();
+                orderContainer.classList.remove('shuffling');
+            }, 300);
+        }
+
+        function setProtocol(proto) {
+            draftProtocol = proto;
+            const standardBtn = document.getElementById('btn-proto-standard');
+            const rrBtn = document.getElementById('btn-proto-3rr');
+            const desc = document.getElementById('protocolDesc');
+
+            if (proto === 'standard') {
+                standardBtn.className = "py-2.5 px-3 rounded-xl text-xs font-bold border-2 bg-indigo-600 text-white border-indigo-600";
+                rrBtn.className = "py-2.5 px-3 rounded-xl text-xs font-bold border-2 bg-white text-slate-600 border-slate-200";
+                desc.textContent = "Classic: Round 1 (1,2,3), Round 2 (3,2,1), Round 3 (1,2,3)...";
+            } else {
+                rrBtn.className = "py-2.5 px-3 rounded-xl text-xs font-bold border-2 bg-indigo-600 text-white border-indigo-600";
+                standardBtn.className = "py-2.5 px-3 rounded-xl text-xs font-bold border-2 bg-white text-slate-600 border-slate-200";
+                desc.textContent = "Advanced: Rounds 1&2 are normal. Round 3 'flips' again (3,2,1) to balance #1 pick.";
+            }
+        }
+
+        function updateCaptainOrderUI() {
             const list = document.getElementById('selectedCaptainsList');
             const startBtn = document.getElementById('startDraftBtn');
             const orderContainer = document.getElementById('captainOrder');
+            
             if (captains.length > 0) {
                 list.classList.remove('hidden');
                 startBtn.classList.remove('hidden');
                 orderContainer.innerHTML = captains.map((c, i) => {
                     const color = teamColorPalette[i % teamColorPalette.length];
-                    return `<div class="${color.light} ${color.text} p-2 rounded-lg text-sm font-bold flex justify-between items-center animate-in slide-in-from-top-1 duration-200">
-                        <span>Captain ${i + 1}: ${c}</span>
+                    return `<div class="${color.light} ${color.text} p-3 rounded-xl text-sm font-bold flex justify-between items-center shadow-sm border ${color.border} animate-in fade-in slide-in-from-left-2 duration-300" style="animation-delay: ${i * 50}ms">
+                        <span class="flex items-center gap-3">
+                            <span class="bg-white/80 w-6 h-6 rounded-full flex items-center justify-center text-[10px] shadow-inner">${i + 1}</span>
+                            ${c}
+                        </span>
                     </div>`;
                 }).join('');
             } else {
@@ -273,18 +347,33 @@
             availablePlayers = allPlayers.filter(p => !captains.includes(p)).sort((a, b) => a.localeCompare(b));
             teams = {};
             captains.forEach((c, i) => { teams[i] = []; });
+            
+            // Generate Sequence based on Protocol
             draftSequence = [];
             let totalPicks = availablePlayers.length;
             let round = 0;
             while (draftSequence.length < totalPicks) {
                 let roundOrder = [];
                 for (let i = 0; i < captains.length; i++) roundOrder.push(i);
-                if (round % 2 !== 0) roundOrder.reverse();
+                
+                let shouldReverse = false;
+                if (draftProtocol === 'standard') {
+                    shouldReverse = (round % 2 !== 0);
+                } else {
+                    // 3RR Logic: 0:F, 1:B, 2:B, 3:F, 4:B, 5:F
+                    if (round === 0) shouldReverse = false;
+                    else if (round === 1 || round === 2) shouldReverse = true;
+                    else shouldReverse = (round % 2 === 0);
+                }
+
+                if (shouldReverse) roundOrder.reverse();
+                
                 roundOrder.forEach(idx => {
                     if (draftSequence.length < totalPicks) draftSequence.push(idx);
                 });
                 round++;
             }
+
             currentSequenceIndex = 0;
             swapSelection = null;
             isBalancerActive = false;
