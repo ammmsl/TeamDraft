@@ -83,10 +83,18 @@
         .kds-active {
             border: 4px dashed var(--ufa-gold);
             cursor: pointer;
+            position: relative;
         }
         .kds-active:hover {
             background: #fefce8;
             transform: translateY(-4px);
+        }
+        .kds-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
         }
 
         .drafted {
@@ -115,7 +123,7 @@
             grid-column: span 12 / span 12;
             display: grid !important;
             grid-template-columns: repeat(5, 1fr) !important;
-            grid-template-rows: 52% 45% !important; /* History takes bottom 45% */
+            grid-template-rows: 52% 45% !important; 
             gap: 1.5rem !important;
             height: 100%;
         }
@@ -129,23 +137,20 @@
             grid-column: 1 / 6;
             height: 100%;
         }
-        /* Make log items side-by-side in footer */
         .completed #draft-log {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
             gap: 0.4rem 1.5rem;
             align-content: start;
         }
-        /* Increase for final rosters */
         .completed .slot-row span.player-name {
             font-size: 1.25rem !important;
             line-height: 1.3;
         }
         .completed .team-name {
-            font-size: 2.25rem; /* Large and bold for final frame */
+            font-size: 2.25rem; 
         }
         
-        /* Hover Export Style */
         .btn-export {
             cursor: pointer;
             transition: all 0.3s ease;
@@ -185,42 +190,52 @@
             
             <div id="team-0" class="bento-card p-6 team-0">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Team 01</h2>
-                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">9 SLOTS</span>
+                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Slot 1</h2>
+                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">1st Pick</span>
                 </div>
-                <div class="flex-1 skeuo-inset p-4 overflow-hidden" id="slots-0"></div>
+                <div class="flex-1 skeuo-inset p-4 overflow-hidden relative" id="slots-0">
+                    <div class="kds-label phase-kds-only text-slate-200 font-black text-4xl">1</div>
+                </div>
             </div>
 
             <div id="team-1" class="bento-card p-6 team-1">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Team 02</h2>
-                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">9 SLOTS</span>
+                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Slot 2</h2>
+                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">2nd Pick</span>
                 </div>
-                <div class="flex-1 skeuo-inset p-4 overflow-hidden" id="slots-1"></div>
+                <div class="flex-1 skeuo-inset p-4 overflow-hidden relative" id="slots-1">
+                    <div class="kds-label phase-kds-only text-slate-200 font-black text-4xl">2</div>
+                </div>
             </div>
 
             <div id="team-2" class="bento-card p-6 team-2">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Team 03</h2>
-                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">9 SLOTS</span>
+                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Slot 3</h2>
+                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">3rd Pick</span>
                 </div>
-                <div class="flex-1 skeuo-inset p-4 overflow-hidden" id="slots-2"></div>
+                <div class="flex-1 skeuo-inset p-4 overflow-hidden relative" id="slots-2">
+                    <div class="kds-label phase-kds-only text-slate-200 font-black text-4xl">3</div>
+                </div>
             </div>
 
             <div id="team-3" class="bento-card p-6 team-3">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Team 04</h2>
-                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">9 SLOTS</span>
+                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Slot 4</h2>
+                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">4th Pick</span>
                 </div>
-                <div class="flex-1 skeuo-inset p-4 overflow-hidden" id="slots-3"></div>
+                <div class="flex-1 skeuo-inset p-4 overflow-hidden relative" id="slots-3">
+                    <div class="kds-label phase-kds-only text-slate-200 font-black text-4xl">4</div>
+                </div>
             </div>
 
             <div id="team-4" class="bento-card p-6 team-4">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Team 05</h2>
-                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">8 SLOTS</span>
+                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Slot 5</h2>
+                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">5th Pick</span>
                 </div>
-                <div class="flex-1 skeuo-inset p-4 overflow-hidden" id="slots-4"></div>
+                <div class="flex-1 skeuo-inset p-4 overflow-hidden relative" id="slots-4">
+                    <div class="kds-label phase-kds-only text-slate-200 font-black text-4xl">5</div>
+                </div>
             </div>
 
             <!-- History Log -->
@@ -290,11 +305,11 @@
         ].sort((a, b) => a.name.localeCompare(b.name));
 
         const teams = [
-            { id: 0, name: "Team 01", anchor: null, players: [], max: 9, color: '#3b82f6' },
-            { id: 1, name: "Team 02", anchor: null, players: [], max: 9, color: '#10b981' },
-            { id: 2, name: "Team 03", anchor: null, players: [], max: 9, color: '#ef4444' },
-            { id: 3, name: "Team 04", anchor: null, players: [], max: 9, color: '#8b5cf6' },
-            { id: 4, name: "Team 05", anchor: null, players: [], max: 8, color: '#f97316' }
+            { id: 0, name: "Slot 1", anchor: null, players: [], max: 9, color: '#3b82f6', pickPos: '1st Pick' },
+            { id: 1, name: "Slot 2", anchor: null, players: [], max: 9, color: '#10b981', pickPos: '2nd Pick' },
+            { id: 2, name: "Slot 3", anchor: null, players: [], max: 9, color: '#ef4444', pickPos: '3rd Pick' },
+            { id: 3, name: "Slot 4", anchor: null, players: [], max: 9, color: '#8b5cf6', pickPos: '4th Pick' },
+            { id: 4, name: "Slot 5", anchor: null, players: [], max: 8, color: '#f97316', pickPos: '5th Pick' }
         ];
 
         let phase = 'KDS';
@@ -338,13 +353,21 @@
             const anchor = kdsOrder[kdsIndex];
             teams[teamIdx].anchor = anchor;
             teams[teamIdx].name = anchor.name.toUpperCase();
+            
             const card = document.getElementById(`team-${teamIdx}`);
             card.classList.remove('kds-active');
+            
+            // Clean KDS labels
+            const label = card.querySelector('.phase-kds-only');
+            if (label) label.remove();
+
             card.querySelector('.team-name').innerText = teams[teamIdx].name;
             card.querySelector('.team-name').classList.remove('text-slate-300');
             card.querySelector('.team-name').classList.add('text-slate-900');
+            
             anchor.pickedInRound = 0;
             teams[teamIdx].players.push(anchor);
+            
             kdsIndex++;
             if (kdsIndex >= 5) {
                 startDraftPhase();
@@ -359,11 +382,14 @@
             document.getElementById('view-mode').innerText = 'OFFICIAL PLAYER DRAFT PHASE';
             document.getElementById('pool-container').style.opacity = '1';
             document.getElementById('pool-container').style.pointerEvents = 'auto';
-            document.getElementById('kds-order-display').innerHTML = '<span class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">KDS Phase Concluded</span>';
+            document.getElementById('kds-order-display').innerHTML = '<span class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Positions Finalized — Drafting Commencing</span>';
             
             draftOrder = [];
+            // Round 2 (5-1)
             for(let i=4; i>=0; i--) draftOrder.push({ team: i, round: 2 });
+            // Round 3 (5-1) - 3RR Reversal
             for(let i=4; i>=0; i--) draftOrder.push({ team: i, round: 3 });
+            
             for(let r=4; r<=10; r++) {
                 if(r % 2 === 0) { 
                     for(let i=0; i<5; i++) draftOrder.push({ team: i, round: r });
@@ -375,6 +401,10 @@
             for(let i=0; i<5; i++) {
                 document.getElementById(`team-${i}`).onclick = null;
                 document.getElementById(`team-${i}`).style.cursor = 'default';
+                
+                // Finalize header labels on cards
+                const card = document.getElementById(`team-${i}`);
+                card.querySelector('span').innerText = (i === 4 ? '8 SLOTS' : '9 SLOTS');
             }
             updateDraftState();
         }
@@ -406,16 +436,25 @@
             teams.forEach((team, idx) => {
                 const slots = document.getElementById(`slots-${idx}`);
                 slots.innerHTML = '';
-                for(let i=0; i<team.max; i++) {
-                    const p = team.players[i];
-                    const row = document.createElement('div');
-                    row.className = 'slot-row flex items-center gap-2';
-                    row.innerHTML = `
-                        <span class="w-5 text-[10px] font-black text-slate-300">#${i+1}</span>
-                        <span class="flex-1 font-bold text-slate-800 text-sm tracking-tight player-name">${p ? p.name : ''}</span>
-                        ${p ? `<span class="text-[8px] font-black text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">${p.pickedInRound === 0 ? 'SEED 0' : 'R'+p.pickedInRound}</span>` : ''}
-                    `;
-                    slots.appendChild(row);
+                
+                // If in KDS phase and slot is empty, show pick position index
+                if (phase === 'KDS' && !team.anchor) {
+                    const kdsLabel = document.createElement('div');
+                    kdsLabel.className = 'kds-label phase-kds-only text-slate-100 font-black text-6xl pointer-events-none select-none';
+                    kdsLabel.innerText = idx + 1;
+                    slots.appendChild(kdsLabel);
+                } else {
+                    for(let i=0; i<team.max; i++) {
+                        const p = team.players[i];
+                        const row = document.createElement('div');
+                        row.className = 'slot-row flex items-center gap-2';
+                        row.innerHTML = `
+                            <span class="w-5 text-[10px] font-black text-slate-300">#${i+1}</span>
+                            <span class="flex-1 font-bold text-slate-800 text-sm tracking-tight player-name">${p ? p.name : ''}</span>
+                            ${p ? `<span class="text-[8px] font-black text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">${p.pickedInRound === 0 ? 'SEED 0' : 'R'+p.pickedInRound}</span>` : ''}
+                        `;
+                        slots.appendChild(row);
+                    }
                 }
             });
         }
@@ -449,8 +488,6 @@
             const log = document.getElementById('draft-log');
             log.innerHTML = '';
             
-            // During draft, we want chronological order in DOM for final layout, 
-            // but we can scroll to bottom to see latest.
             logData.forEach(item => {
                 const div = document.createElement('div');
                 div.className = "flex justify-between items-center text-slate-200 border-b border-slate-800/50 pb-1.5 animate-in fade-in slide-in-from-left";
@@ -464,7 +501,6 @@
                 log.appendChild(div);
             });
             
-            // Scroll to bottom during draft
             if (!document.getElementById('main-body').classList.contains('completed')) {
                 log.scrollTop = log.scrollHeight;
             }
@@ -495,7 +531,6 @@
             document.body.removeChild(el);
 
             const status = document.getElementById('draft-status');
-            const originalText = status.innerText;
             status.innerText = "COPIED TO CLIPBOARD!";
             status.style.background = "#10b981";
             setTimeout(() => {
@@ -516,9 +551,8 @@
                     status.innerText = "DRAFT COMPLETE";
                     status.classList.add('btn-export');
                     
-                    // Button interaction
-                    status.onmouseover = () => { status.innerText = "EXPORT DRAFT"; };
-                    status.onmouseout = () => { status.innerText = "DRAFT COMPLETE"; };
+                    status.onmouseover = () => { if(status.innerText === "DRAFT COMPLETE") status.innerText = "EXPORT DRAFT"; };
+                    status.onmouseout = () => { if(status.innerText === "EXPORT DRAFT") status.innerText = "DRAFT COMPLETE"; };
                     status.onclick = exportToClipboard;
 
                     document.getElementById('main-body').classList.add('completed');
