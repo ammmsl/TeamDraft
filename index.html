@@ -20,292 +20,347 @@
             font-family: 'Inter', sans-serif;
             background-color: var(--ufa-bg);
             color: var(--ufa-navy);
-            overflow-x: hidden;
+            height: 1080px;
+            width: 1920px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.5s ease;
         }
 
         .bento-card {
             background: var(--bento-card-bg);
-            border-radius: 28px;
+            border-radius: 24px;
             box-shadow: var(--skeuo-outer);
             border: 1px solid rgba(255, 255, 255, 0.8);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .skeuo-button {
             background: linear-gradient(145deg, #ffffff, #f8fafc);
-            box-shadow: 2px 2px 5px #cbd5e1, -2px -2px 5px #ffffff;
+            box-shadow: 2px 2px 4px #cbd5e1, -1px -1px 4px #ffffff;
             border: 1px solid #f1f5f9;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
+        }
+
+        .skeuo-button:hover:not(.drafted) {
+            transform: translateY(-1px);
+            box-shadow: 4px 4px 8px #cbd5e1, -2px -2px 8px #ffffff;
         }
 
         .skeuo-button:active {
             box-shadow: inset 2px 2px 4px #cbd5e1, inset -2px -2px 4px #ffffff;
-            transform: scale(0.99);
+            transform: scale(0.98);
         }
 
         .skeuo-inset {
             background: #f8fafc;
             box-shadow: var(--skeuo-inner);
-            border-radius: 20px;
+            border-radius: 16px;
         }
 
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 5px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #e2e8f0;
-            border-radius: 10px;
-        }
+        /* Dynamic Team Colors */
+        .team-0 { border-top: 8px solid #3b82f6; } 
+        .team-1 { border-top: 8px solid #10b981; } 
+        .team-2 { border-top: 8px solid #ef4444; } 
+        .team-3 { border-top: 8px solid #8b5cf6; } 
+        .team-4 { border-top: 8px solid #f97316; } 
 
         .active-team {
-            border: 3px solid var(--ufa-gold);
+            animation: pulse-border 1.5s infinite alternate;
             background: #fffdf5;
-            animation: pulse-gold 2.5s infinite;
+            transform: translateY(-4px) scale(1.02);
+            z-index: 50;
         }
 
-        @keyframes pulse-gold {
-            0% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.2); }
-            70% { box-shadow: 0 0 0 12px rgba(234, 179, 8, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0px rgba(234, 179, 8, 0.2); }
+            100% { box-shadow: 0 0 30px 5px rgba(234, 179, 8, 0.3); }
+        }
+
+        .kds-active {
+            border: 4px dashed var(--ufa-gold);
+            cursor: pointer;
+        }
+        .kds-active:hover {
+            background: #fefce8;
+            transform: translateY(-4px);
         }
 
         .drafted {
-            opacity: 0.35;
+            opacity: 0.15;
             filter: grayscale(1);
             pointer-events: none;
+            background: #f1f5f9;
+            box-shadow: none;
         }
 
         .slot-row {
             border-bottom: 1px solid #f1f5f9;
-            padding: 10px 0;
+            padding: 6px 0;
         }
         .slot-row:last-child { border-bottom: none; }
 
-        /* Typography sizing for VOD legibility */
-        .text-huge { font-size: 1.15rem; line-height: 1.5; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+
+        /* Completion Layout Transforms */
+        .completed #pool-container {
+            display: none !important;
+        }
+        .completed #team-grid {
+            grid-column: span 12 / span 12;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            grid-template-rows: 1fr;
+        }
+        .completed .bento-card {
+            height: 100%;
+        }
+        .completed #log-card {
+            display: none;
+        }
     </style>
 </head>
-<body class="p-6 lg:p-10 min-h-screen">
+<body class="p-8" id="main-body">
 
-    <!-- Header Section -->
-    <header class="max-w-[1600px] mx-auto mb-10 flex justify-between items-center">
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-6 h-20">
         <div class="flex items-center gap-6">
-            <img src="webBanner.png" alt="UFA Logo" class="h-20 w-auto object-contain" onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='flex'">
-            <div id="logo-fallback" class="hidden bg-slate-900 w-16 h-16 rounded-2xl items-center justify-center text-white font-black text-2xl shadow-xl">U</div>
+            <img src="webBanner.png" alt="UFA Logo" class="h-16 w-auto object-contain" onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='flex'">
+            <div id="logo-fallback" class="hidden bg-slate-900 w-16 h-16 rounded-xl items-center justify-center text-white font-black text-2xl shadow-xl">U</div>
             <div>
-                <h1 class="text-4xl font-black tracking-tight text-slate-900 uppercase">League 2026 <span class="text-amber-500">Draft</span></h1>
-                <p class="text-slate-500 font-bold text-lg tracking-wide uppercase">Season 1 | Official Selection Portal</p>
+                <h1 class="text-4xl font-black tracking-tighter text-slate-900 uppercase leading-none mb-1">League 2026 <span class="text-amber-500">Draft</span></h1>
+                <p class="text-slate-400 font-bold text-lg tracking-[0.1em] uppercase" id="view-mode">KDS SLOT SELECTION PHASE</p>
             </div>
         </div>
-        <div class="text-right">
-            <div id="draft-status" class="px-6 py-3 bg-slate-900 text-amber-400 rounded-2xl font-black text-sm tracking-widest shadow-lg uppercase">
-                Awaiting Round 1
+        <div class="flex items-center gap-4">
+            <div id="kds-order-display" class="flex gap-2 mr-4"></div>
+            <div id="draft-status" class="px-8 py-3 bg-slate-900 text-amber-400 rounded-xl font-black text-xl tracking-widest shadow-xl uppercase border-b-4 border-amber-600">
+                Initializing KDS...
             </div>
         </div>
     </header>
 
-    <main class="max-w-[1600px] mx-auto grid grid-cols-12 gap-8 h-[calc(100vh-220px)]">
+    <main class="flex-1 grid grid-cols-12 gap-6 min-h-0">
         
-        <!-- Left Column: Teams & History -->
-        <div class="col-span-8 grid grid-cols-3 grid-rows-2 gap-8">
+        <!-- Left: Teams + History -->
+        <div id="team-grid" class="col-span-8 grid grid-cols-3 grid-rows-2 gap-6 min-h-0">
             
-            <!-- Team 1-5 Cards -->
-            <div id="team-0" class="bento-card p-6 flex flex-col transition-all">
+            <div id="team-0" class="bento-card p-6 team-0">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-extrabold uppercase text-slate-400 tracking-tighter">Team 01</h2>
-                    <span class="bg-slate-100 text-[10px] font-black px-2 py-1 rounded text-slate-500">9 SLOTS</span>
+                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Team 01</h2>
+                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">9 SLOTS</span>
                 </div>
-                <div class="flex-1 skeuo-inset p-4 overflow-y-auto custom-scrollbar" id="slots-0"></div>
+                <div class="flex-1 skeuo-inset p-4 overflow-hidden" id="slots-0"></div>
             </div>
 
-            <div id="team-1" class="bento-card p-6 flex flex-col transition-all">
+            <div id="team-1" class="bento-card p-6 team-1">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-extrabold uppercase text-slate-400 tracking-tighter">Team 02</h2>
-                    <span class="bg-slate-100 text-[10px] font-black px-2 py-1 rounded text-slate-500">9 SLOTS</span>
+                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Team 02</h2>
+                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">9 SLOTS</span>
                 </div>
-                <div class="flex-1 skeuo-inset p-4 overflow-y-auto custom-scrollbar" id="slots-1"></div>
+                <div class="flex-1 skeuo-inset p-4 overflow-hidden" id="slots-1"></div>
             </div>
 
-            <div id="team-2" class="bento-card p-6 flex flex-col transition-all">
+            <div id="team-2" class="bento-card p-6 team-2">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-extrabold uppercase text-slate-400 tracking-tighter">Team 03</h2>
-                    <span class="bg-slate-100 text-[10px] font-black px-2 py-1 rounded text-slate-500">9 SLOTS</span>
+                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Team 03</h2>
+                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">9 SLOTS</span>
                 </div>
-                <div class="flex-1 skeuo-inset p-4 overflow-y-auto custom-scrollbar" id="slots-2"></div>
+                <div class="flex-1 skeuo-inset p-4 overflow-hidden" id="slots-2"></div>
             </div>
 
-            <div id="team-3" class="bento-card p-6 flex flex-col transition-all">
+            <div id="team-3" class="bento-card p-6 team-3">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-extrabold uppercase text-slate-400 tracking-tighter">Team 04</h2>
-                    <span class="bg-slate-100 text-[10px] font-black px-2 py-1 rounded text-slate-500">8 SLOTS</span>
+                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Team 04</h2>
+                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">9 SLOTS</span>
                 </div>
-                <div class="flex-1 skeuo-inset p-4 overflow-y-auto custom-scrollbar" id="slots-3"></div>
+                <div class="flex-1 skeuo-inset p-4 overflow-hidden" id="slots-3"></div>
             </div>
 
-            <div id="team-4" class="bento-card p-6 flex flex-col transition-all">
+            <div id="team-4" class="bento-card p-6 team-4">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-extrabold uppercase text-slate-400 tracking-tighter">Team 05</h2>
-                    <span class="bg-slate-100 text-[10px] font-black px-2 py-1 rounded text-slate-500">8 SLOTS</span>
+                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Team 05</h2>
+                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">8 SLOTS</span>
                 </div>
-                <div class="flex-1 skeuo-inset p-4 overflow-y-auto custom-scrollbar" id="slots-4"></div>
+                <div class="flex-1 skeuo-inset p-4 overflow-hidden" id="slots-4"></div>
             </div>
 
-            <!-- Draft History Log -->
-            <div class="bento-card p-6 bg-slate-900 text-white flex flex-col">
+            <!-- History Log -->
+            <div id="log-card" class="bento-card p-6 bg-slate-900 text-white">
                 <div class="flex items-center gap-3 mb-4">
-                    <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-slate-900" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"></path></svg>
+                    <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center shadow-lg">
+                        <svg class="w-5 h-5 text-slate-900" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"></path></svg>
                     </div>
-                    <h2 class="text-lg font-black uppercase tracking-widest">Draft Log</h2>
+                    <h2 class="text-lg font-black uppercase tracking-widest">Draft History</h2>
                 </div>
-                <div id="draft-log" class="flex-1 overflow-y-auto text-sm space-y-3 font-medium custom-scrollbar pr-2 opacity-90">
-                    <div class="text-slate-500 italic">Waiting for draft to begin...</div>
+                <div id="draft-log" class="flex-1 overflow-y-auto text-xs space-y-2 font-medium custom-scrollbar pr-2">
+                    <div class="text-slate-500 italic">Waiting for first pick...</div>
                 </div>
             </div>
         </div>
 
-        <!-- Right Column: Player Pool -->
-        <div class="col-span-4 bento-card p-8 flex flex-col overflow-hidden">
-            <div class="mb-8">
-                <h2 class="text-2xl font-black mb-4 tracking-tight uppercase">Eligible Athletes</h2>
-                <div class="relative">
-                    <input type="text" id="player-search" placeholder="Search by name..." class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 pl-12 focus:ring-4 focus:ring-amber-500/20 outline-none transition-all font-semibold text-lg">
-                    <svg class="w-6 h-6 absolute left-4 top-4.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        <!-- Right: Player Pool -->
+        <div class="col-span-4 bento-card p-8 min-h-0" id="pool-container" style="opacity: 0.5; pointer-events: none;">
+            <div class="flex justify-between items-end mb-6">
+                <h2 class="text-2xl font-black uppercase tracking-tighter">Athletes</h2>
+                <div class="relative w-48">
+                    <input type="text" id="player-search" placeholder="Search..." class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 pl-10 focus:ring-4 focus:ring-amber-500/20 outline-none text-sm font-bold transition-all">
+                    <svg class="w-5 h-5 absolute left-3 top-2.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </div>
             </div>
 
-            <div id="player-pool" class="flex-1 overflow-y-auto custom-scrollbar pr-3 space-y-3">
+            <div id="player-pool" class="flex-1 grid grid-cols-3 gap-x-2 gap-y-2 content-start overflow-hidden">
                 <!-- Players dynamically loaded -->
             </div>
 
-            <div class="mt-8 pt-6 border-t border-slate-100">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Upcoming Selections</p>
-                <div id="up-next" class="flex gap-3">
-                    <!-- Dynamic next picks -->
+            <div class="mt-6 pt-6 border-t border-slate-100 h-20 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Next in Line</p>
+                    <div id="up-next" class="flex gap-2"></div>
+                </div>
+                <div class="text-right">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Progress</p>
+                    <div id="pick-progress" class="text-3xl font-black text-slate-900">0 / 39</div>
                 </div>
             </div>
         </div>
     </main>
 
     <script>
-        // DATA: Alphabetized player list for anonymity
-        // Scores are kept in the data object for internal logic (to detect Anchors)
-        // but are NEVER displayed in the UI.
-        const RAW_PLAYERS = [
-            { id: 1, name: "Philip", score: 214, isAnchor: true },
-            { id: 2, name: "Azim", score: 209, isAnchor: true },
-            { id: 3, name: "Zayyan", score: 114, isAnchor: true },
-            { id: 4, name: "Rizam", score: 88, isAnchor: true },
-            { id: 5, name: "Mode", score: 83, isAnchor: true },
-            { id: 6, name: "Shamin", score: 70 },
-            { id: 7, name: "Miph", score: 54 },
-            { id: 8, name: "Fauz", score: 30 },
-            { id: 9, name: "Finn", score: 28 },
-            { id: 10, name: "Afrah", score: 23 },
-            { id: 11, name: "Aahil", score: 0 },
-            { id: 12, name: "Aisha", score: 0 },
-            { id: 13, name: "Amsal", score: 0 },
-            { id: 14, name: "Aryf", score: 0 },
-            { id: 15, name: "Babaa", score: 0 },
-            { id: 16, name: "Eijaz", score: 0 },
-            { id: 17, name: "Hamko", score: 0 },
-            { id: 18, name: "Hassaan", score: 0 },
-            { id: 19, name: "Imma", score: 0 },
-            { id: 20, name: "Jef", score: 0 },
-            { id: 21, name: "Jilaau", score: 0 },
-            { id: 22, name: "Jin", score: 0 },
-            { id: 23, name: "Junayd", score: 0 },
-            { id: 24, name: "Kaitlinn", score: 0 },
-            { id: 25, name: "Kat", score: 0 },
-            { id: 26, name: "Lamath", score: 0 },
-            { id: 27, name: "Ma'an", score: 0 },
-            { id: 28, name: "Maahy", score: 0 },
-            { id: 29, name: "Maeesh", score: 0 },
-            { id: 30, name: "Malaka", score: 0 },
-            { id: 31, name: "Mateo", score: 0 },
-            { id: 32, name: "Miju", score: 0 },
-            { id: 33, name: "Moadz", score: 0 },
-            { id: 34, name: "Muky", score: 0 },
-            { id: 35, name: "Nawaz", score: 0 },
-            { id: 36, name: "Piko", score: 0 },
-            { id: 37, name: "Saam", score: 0 },
-            { id: 38, name: "Shaaif", score: 0 },
-            { id: 39, name: "Shazeen", score: 0 },
-            { id: 40, name: "Tanzeem", score: 22 },
-            { id: 41, name: "Uraiba", score: 14 },
-            { id: 42, name: "Yoosuf", score: 0 },
-            { id: 43, name: "Ewan", score: 0 },
-            { id: 44, name: "Mushaan", score: 0 }
+        const ANCHORS = [
+            { id: 1, name: "Philip", isAnchor: true },
+            { id: 2, name: "Azim", isAnchor: true },
+            { id: 3, name: "Zayyan", isAnchor: true },
+            { id: 4, name: "Rizam", isAnchor: true },
+            { id: 5, name: "Mode", isAnchor: true }
         ];
 
-        // Ensure anonymity by sorting alphabetically by default
-        const ALL_PLAYERS = RAW_PLAYERS.sort((a, b) => a.name.localeCompare(b.name));
+        const POOL_PLAYERS = [
+            { id: 6, name: "Shamin" }, { id: 7, name: "Miph" }, { id: 8, name: "Fauz" }, 
+            { id: 9, name: "Finn" }, { id: 10, name: "Afrah" }, { id: 11, name: "Aahil" }, 
+            { id: 12, name: "Aisha" }, { id: 13, name: "Amsal" }, { id: 14, name: "Aryf" }, 
+            { id: 15, name: "Babaa" }, { id: 16, name: "Eijaz" }, { id: 17, name: "Hamko" }, 
+            { id: 18, name: "Hassaan" }, { id: 19, name: "Imma" }, { id: 20, name: "Jef" }, 
+            { id: 21, name: "Jilaau" }, { id: 22, name: "Jin" }, { id: 23, name: "Junayd" }, 
+            { id: 24, name: "Kaitlinn" }, { id: 25, name: "Kat" }, { id: 26, name: "Lamath" }, 
+            { id: 27, name: "Ma'an" }, { id: 28, name: "Maahy" }, { id: 29, name: "Maeesh" }, 
+            { id: 30, name: "Malaka" }, { id: 31, name: "Mateo" }, { id: 32, name: "Miju" }, 
+            { id: 33, name: "Moadz" }, { id: 34, name: "Muky" }, { id: 35, name: "Nawaz" }, 
+            { id: 36, name: "Piko" }, { id: 37, name: "Saam" }, { id: 38, name: "Shaaif" }, 
+            { id: 39, name: "Shazeen" }, { id: 40, name: "Tanzeem" }, { id: 41, name: "Uraiba" }, 
+            { id: 42, name: "Yoosuf" }, { id: 43, name: "Ewan" }, { id: 44, name: "Mushaan" }
+        ].sort((a, b) => a.name.localeCompare(b.name));
 
         const teams = [
-            { id: 0, name: "Team 01", players: [], max: 9 },
-            { id: 1, name: "Team 02", players: [], max: 9 },
-            { id: 2, name: "Team 03", players: [], max: 9 },
-            { id: 3, name: "Team 04", players: [], max: 8 },
-            { id: 4, name: "Team 05", players: [], max: 8 }
+            { id: 0, name: "Team 01", anchor: null, players: [], max: 9, color: '#3b82f6' },
+            { id: 1, name: "Team 02", anchor: null, players: [], max: 9, color: '#10b981' },
+            { id: 2, name: "Team 03", anchor: null, players: [], max: 9, color: '#ef4444' },
+            { id: 3, name: "Team 04", anchor: null, players: [], max: 9, color: '#8b5cf6' },
+            { id: 4, name: "Team 05", anchor: null, players: [], max: 8, color: '#f97316' }
         ];
 
-        // 3RR Reversal Draft Logic (5 Teams)
-        function generateDraftOrder() {
-            let order = [];
-            // R1: 1 -> 5 (Anchors)
-            for(let i=0; i<5; i++) order.push({ team: i, round: 1 });
-            // R2: 5 -> 1 (Snake start)
-            for(let i=4; i>=0; i--) order.push({ team: i, round: 2 });
-            // R3: 5 -> 1 (3RR Reversal - Team 5 gets back-to-back start)
-            for(let i=4; i>=0; i--) order.push({ team: i, round: 3 });
-            // R4+: Standard Snake
-            for(let r=4; r<=12; r++) {
-                if(r % 2 === 0) { // Forward
-                    for(let i=0; i<5; i++) order.push({ team: i, round: r });
-                } else { // Backward
-                    for(let i=4; i>=0; i--) order.push({ team: i, round: r });
-                }
-            }
-            return order;
-        }
-
-        const draftOrder = generateDraftOrder();
+        let phase = 'KDS';
+        let kdsOrder = [];
+        let kdsIndex = 0;
+        let draftOrder = [];
         let currentPickIndex = 0;
         let draftedIds = new Set();
 
         function init() {
+            kdsOrder = [...ANCHORS].sort(() => Math.random() - 0.5);
+            renderKDSUI();
             renderPlayers();
             renderTeams();
             updateDraftState();
             document.getElementById('player-search').addEventListener('input', renderPlayers);
+            for(let i=0; i<5; i++) {
+                document.getElementById(`team-${i}`).onclick = () => selectKDSSlot(i);
+                document.getElementById(`team-${i}`).classList.add('kds-active');
+            }
+        }
+
+        function renderKDSUI() {
+            const display = document.getElementById('kds-order-display');
+            display.innerHTML = '';
+            kdsOrder.forEach((anchor, i) => {
+                const badge = document.createElement('div');
+                badge.className = `px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all shadow-md ${i === kdsIndex ? 'bg-amber-500 text-white animate-pulse' : 'bg-slate-200 text-slate-500'}`;
+                badge.innerText = `${i+1}. ${anchor.name}`;
+                display.appendChild(badge);
+            });
+            if (phase === 'KDS') {
+                document.getElementById('draft-status').innerText = `${kdsOrder[kdsIndex].name} - Select Your Draft Position`;
+            }
+        }
+
+        function selectKDSSlot(teamIdx) {
+            if (phase !== 'KDS') return;
+            if (teams[teamIdx].anchor) return;
+            const anchor = kdsOrder[kdsIndex];
+            teams[teamIdx].anchor = anchor;
+            teams[teamIdx].name = anchor.name.toUpperCase();
+            const card = document.getElementById(`team-${teamIdx}`);
+            card.classList.remove('kds-active');
+            card.querySelector('.team-name').innerText = teams[teamIdx].name;
+            card.querySelector('.team-name').classList.remove('text-slate-300');
+            card.querySelector('.team-name').classList.add('text-slate-900');
+            anchor.pickedInRound = 0;
+            teams[teamIdx].players.push(anchor);
+            kdsIndex++;
+            if (kdsIndex >= 5) {
+                startDraftPhase();
+            } else {
+                renderKDSUI();
+            }
+            renderTeams();
+        }
+
+        function startDraftPhase() {
+            phase = 'DRAFT';
+            document.getElementById('view-mode').innerText = 'OFFICIAL PLAYER DRAFT PHASE';
+            document.getElementById('pool-container').style.opacity = '1';
+            document.getElementById('pool-container').style.pointerEvents = 'auto';
+            document.getElementById('kds-order-display').innerHTML = '<span class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">KDS Phase Concluded</span>';
+            
+            draftOrder = [];
+            for(let i=4; i>=0; i--) draftOrder.push({ team: i, round: 2 });
+            for(let i=4; i>=0; i--) draftOrder.push({ team: i, round: 3 });
+            for(let r=4; r<=10; r++) {
+                if(r % 2 === 0) { 
+                    for(let i=0; i<5; i++) draftOrder.push({ team: i, round: r });
+                } else { 
+                    for(let i=4; i>=0; i--) draftOrder.push({ team: i, round: r });
+                }
+            }
+            
+            for(let i=0; i<5; i++) {
+                document.getElementById(`team-${i}`).onclick = null;
+                document.getElementById(`team-${i}`).style.cursor = 'default';
+            }
+            updateDraftState();
         }
 
         function renderPlayers() {
             const container = document.getElementById('player-pool');
             const search = document.getElementById('player-search').value.toLowerCase();
             container.innerHTML = '';
-
-            ALL_PLAYERS.forEach(player => {
+            POOL_PLAYERS.forEach(player => {
                 if (player.name.toLowerCase().includes(search)) {
                     const isDrafted = draftedIds.has(player.id);
                     const el = document.createElement('div');
-                    el.className = `skeuo-button p-5 rounded-2xl flex justify-between items-center ${isDrafted ? 'drafted' : 'cursor-pointer'}`;
-                    
+                    el.className = `skeuo-button px-2 py-2.5 rounded-xl flex items-center justify-between transition-all ${isDrafted ? 'drafted' : 'cursor-pointer'}`;
+                    el.onclick = () => !isDrafted && draftPlayer(player.id);
                     el.innerHTML = `
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-400 border border-slate-200">
+                        <div class="flex items-center gap-2 overflow-hidden">
+                            <div class="w-6 h-6 rounded-lg bg-slate-100 flex-shrink-0 flex items-center justify-center font-black text-[10px] text-slate-400">
                                 ${player.name[0]}
                             </div>
-                            <div>
-                                <div class="font-bold text-huge text-slate-800">${player.name}</div>
-                                <div class="text-[9px] uppercase font-black tracking-widest ${player.isAnchor ? 'text-amber-500' : 'text-slate-300'}">
-                                    ${player.isAnchor ? 'Seed 0 Pool' : 'Standard Pool'}
-                                </div>
-                            </div>
+                            <span class="font-bold text-xs text-slate-700 truncate">${player.name}</span>
                         </div>
-                        ${!isDrafted ? `<button onclick="draftPlayer(${player.id})" class="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-amber-500 transition-all">Select</button>` : ''}
                     `;
                     container.appendChild(el);
                 }
@@ -319,11 +374,11 @@
                 for(let i=0; i<team.max; i++) {
                     const p = team.players[i];
                     const row = document.createElement('div');
-                    row.className = 'slot-row flex items-center gap-4';
+                    row.className = 'slot-row flex items-center gap-2';
                     row.innerHTML = `
-                        <span class="w-6 text-[10px] font-black text-slate-300">#${i+1}</span>
-                        <span class="flex-1 font-bold text-slate-700 text-sm tracking-tight">${p ? p.name : '—'}</span>
-                        ${p ? `<span class="bg-slate-200 text-slate-500 text-[8px] px-1.5 py-0.5 rounded font-black">R${p.pickedInRound}</span>` : ''}
+                        <span class="w-5 text-[10px] font-black text-slate-300">#${i+1}</span>
+                        <span class="flex-1 font-bold text-slate-800 text-sm tracking-tight">${p ? p.name : ''}</span>
+                        ${p ? `<span class="text-[8px] font-black text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">${p.pickedInRound === 0 ? 'SEED 0' : 'R'+p.pickedInRound}</span>` : ''}
                     `;
                     slots.appendChild(row);
                 }
@@ -331,32 +386,32 @@
         }
 
         function draftPlayer(id) {
-            if (currentPickIndex >= draftOrder.length) return;
+            if (phase !== 'DRAFT' || currentPickIndex >= draftOrder.length) return;
             
-            const player = ALL_PLAYERS.find(p => p.id === id);
+            const player = POOL_PLAYERS.find(p => p.id === id);
             const currentPick = draftOrder[currentPickIndex];
             const team = teams[currentPick.team];
 
-            // Safety Logic: Round 1 is strictly for Seed 0 Anchors
-            if (currentPick.round === 1 && !player.isAnchor) {
-                showToast("Round 1 requires Seed 0 pool selection.");
+            if (team.players.length >= team.max) {
+                currentPickIndex++;
+                draftPlayer(id);
                 return;
             }
 
-            // Execute Pick
             player.pickedInRound = currentPick.round;
             team.players.push(player);
             draftedIds.add(id);
 
-            // Log entry
             const log = document.getElementById('draft-log');
-            if (currentPickIndex === 0) log.innerHTML = '';
+            if (draftedIds.size === 1) log.innerHTML = '';
             const div = document.createElement('div');
-            div.className = "flex gap-3 animate-in fade-in slide-in-from-left-4 duration-500";
+            div.className = "flex justify-between items-center text-slate-200 border-b border-slate-800/50 pb-1.5 animate-in fade-in slide-in-from-left";
             div.innerHTML = `
-                <span class="text-amber-500 font-black">P${currentPickIndex + 1}</span>
-                <span class="text-slate-400">${team.name}</span>
-                <span class="font-bold text-white">${player.name}</span>
+                <div class="flex gap-2 items-center">
+                    <span class="font-black text-sm px-1.5 py-0.5 rounded bg-slate-800" style="color: ${team.color}">P${draftedIds.size}</span>
+                    <span class="font-bold text-white text-base">${player.name}</span>
+                </div>
+                <span class="text-[10px] uppercase font-black text-slate-500">${team.name}</span>
             `;
             log.prepend(div);
 
@@ -368,34 +423,43 @@
 
         function updateDraftState() {
             document.querySelectorAll('.bento-card').forEach(c => c.classList.remove('active-team'));
+            const count = draftedIds.size;
+            document.getElementById('pick-progress').innerText = `${count} / 39`;
             
-            if (currentPickIndex < draftOrder.length) {
-                const next = draftOrder[currentPickIndex];
-                document.getElementById(`team-${next.team}`).classList.add('active-team');
-                document.getElementById('draft-status').innerText = `ROUND ${next.round} | ${teams[next.team].name} ON CLOCK`;
-
-                // Up Next logic
-                const nextPicks = document.getElementById('up-next');
-                nextPicks.innerHTML = '';
-                for(let i=1; i<=3; i++) {
-                    const fut = draftOrder[currentPickIndex + i];
-                    if(!fut) break;
-                    const el = document.createElement('div');
-                    el.className = "skeuo-inset px-4 py-2 text-[10px] font-black uppercase text-slate-400 flex items-center gap-2";
-                    el.innerHTML = `<div class="w-1.5 h-1.5 rounded-full bg-slate-300"></div> ${teams[fut.team].name}`;
-                    nextPicks.appendChild(el);
+            if (phase === 'DRAFT') {
+                if (count >= 39) {
+                    document.getElementById('draft-status').innerText = "DRAFT COMPLETE";
+                    document.getElementById('main-body').classList.add('completed');
+                    document.getElementById('view-mode').innerText = "SEASON 1 FINAL ROSTERS";
+                    return;
                 }
-            } else {
-                document.getElementById('draft-status').innerText = "DRAFT COMPLETE";
-            }
-        }
 
-        function showToast(msg) {
-            const t = document.createElement('div');
-            t.className = "fixed top-12 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-10 py-5 rounded-3xl shadow-2xl z-50 font-black text-center border-2 border-amber-500 uppercase tracking-widest";
-            t.innerText = msg;
-            document.body.appendChild(t);
-            setTimeout(() => t.remove(), 2500);
+                let pick = draftOrder[currentPickIndex];
+                while(pick && teams[pick.team].players.length >= teams[pick.team].max) {
+                    currentPickIndex++;
+                    pick = draftOrder[currentPickIndex];
+                }
+
+                if (pick) {
+                    const activeCard = document.getElementById(`team-${pick.team}`);
+                    activeCard.classList.add('active-team');
+                    document.getElementById('draft-status').innerText = `ROUND ${pick.round} | ${teams[pick.team].name} ON CLOCK`;
+
+                    const nextPicks = document.getElementById('up-next');
+                    nextPicks.innerHTML = '';
+                    let found = 0;
+                    for(let i=1; found < 3 && (currentPickIndex + i) < draftOrder.length; i++) {
+                        const fut = draftOrder[currentPickIndex + i];
+                        if(teams[fut.team].players.length < teams[fut.team].max) {
+                            const el = document.createElement('div');
+                            el.className = "skeuo-inset px-4 py-1.5 text-[10px] font-black uppercase text-slate-500 flex items-center gap-2";
+                            el.innerHTML = `<div class="w-1.5 h-1.5 rounded-full" style="background: ${teams[fut.team].color}"></div> ${teams[fut.team].name}`;
+                            nextPicks.appendChild(el);
+                            found++;
+                        }
+                    }
+                }
+            }
         }
 
         window.onload = init;
