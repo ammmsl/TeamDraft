@@ -3,630 +3,466 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Frisbee Draft Tool</title>
+    <title>UFA League 2026 | Official Draft Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --ufa-navy: #0f172a;
+            --ufa-gold: #eab308;
+            --ufa-bg: #f1f5f9;
+            --bento-card-bg: #ffffff;
+            --skeuo-outer: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.02);
+            --skeuo-inner: inset 0 2px 4px 0 rgba(0,0,0,0.03);
+        }
+
         body {
-            -webkit-tap-highlight-color: transparent;
-            background-color: #f8fafc;
-        }
-        .touch-target {
-            min-height: 44px;
-        }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .swap-selected {
-            background-color: #1e1b4b !important;
-            color: white !important;
-            border-color: #1e1b4b !important;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--ufa-bg);
+            color: var(--ufa-navy);
+            height: 1080px;
+            width: 1920px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.5s ease;
         }
 
-        /* Helper for vertical column flow in UI */
-        .roster-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            grid-auto-flow: column;
+        .bento-card {
+            background: var(--bento-card-bg);
+            border-radius: 24px;
+            box-shadow: var(--skeuo-outer);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Export Area Styling (Hidden from view) */
-        #export-container {
-            position: absolute;
-            left: -9999px;
-            top: 0;
-            width: 800px;
-            background: white;
-            padding: 40px;
-            font-family: ui-sans-serif, system-ui, sans-serif;
-        }
-        .export-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 24px;
+        .skeuo-button {
+            background: linear-gradient(145deg, #ffffff, #f8fafc);
+            box-shadow: 2px 2px 4px #cbd5e1, -1px -1px 4px #ffffff;
+            border: 1px solid #f1f5f9;
+            transition: all 0.15s ease;
         }
 
-        @keyframes shuffle-blink {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(0.98); }
+        .skeuo-button:hover:not(.drafted) {
+            transform: translateY(-1px);
+            box-shadow: 4px 4px 8px #cbd5e1, -2px -2px 8px #ffffff;
         }
-        .shuffling {
-            animation: shuffle-blink 0.15s ease-in-out infinite;
+
+        .skeuo-button:active {
+            box-shadow: inset 2px 2px 4px #cbd5e1, inset -2px -2px 4px #ffffff;
+            transform: scale(0.98);
+        }
+
+        .skeuo-inset {
+            background: #f8fafc;
+            box-shadow: var(--skeuo-inner);
+            border-radius: 16px;
+        }
+
+        /* Dynamic Team Colors */
+        .team-0 { border-top: 8px solid #3b82f6; } 
+        .team-1 { border-top: 8px solid #10b981; } 
+        .team-2 { border-top: 8px solid #ef4444; } 
+        .team-3 { border-top: 8px solid #8b5cf6; } 
+        .team-4 { border-top: 8px solid #f97316; } 
+
+        .active-team {
+            animation: pulse-border 1.5s infinite alternate;
+            background: #fffdf5;
+            transform: translateY(-4px) scale(1.02);
+            z-index: 50;
+        }
+
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0px rgba(234, 179, 8, 0.2); }
+            100% { box-shadow: 0 0 30px 5px rgba(234, 179, 8, 0.3); }
+        }
+
+        .kds-active {
+            border: 4px dashed var(--ufa-gold);
+            cursor: pointer;
+        }
+        .kds-active:hover {
+            background: #fefce8;
+            transform: translateY(-4px);
+        }
+
+        .drafted {
+            opacity: 0.15;
+            filter: grayscale(1);
+            pointer-events: none;
+            background: #f1f5f9;
+            box-shadow: none;
+        }
+
+        .slot-row {
+            border-bottom: 1px solid #f1f5f9;
+            padding: 6px 0;
+        }
+        .slot-row:last-child { border-bottom: none; }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+
+        /* Completion Layout Transforms */
+        .completed #pool-container {
+            display: none !important;
+        }
+        .completed #team-grid {
+            grid-column: span 12 / span 12;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            grid-template-rows: 1fr;
+        }
+        .completed .bento-card {
+            height: 100%;
+        }
+        .completed #log-card {
+            display: none;
         }
     </style>
 </head>
-<body class="p-4 md:p-8 font-sans text-slate-800">
+<body class="p-8" id="main-body">
 
-    <div class="max-w-md mx-auto space-y-6">
-        <!-- Header -->
-        <header class="text-center">
-            <h1 class="text-2xl font-bold text-indigo-600">🥏 Frisbee Snake Draft</h1>
-            <p id="subHeader" class="text-slate-500 text-sm">Paste the list to begin</p>
-        </header>
-
-        <!-- STEP 1: Paste Input -->
-        <div id="step-1" class="space-y-4">
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                <h2 class="font-semibold text-slate-700 mb-3 text-sm uppercase tracking-wider">1. Paste Original Message</h2>
-                <textarea id="rawInput" rows="12" placeholder="Paste WhatsApp message here..." class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner text-sm leading-relaxed"></textarea>
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-6 h-20">
+        <div class="flex items-center gap-6">
+            <img src="webBanner.png" alt="UFA Logo" class="h-16 w-auto object-contain" onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='flex'">
+            <div id="logo-fallback" class="hidden bg-slate-900 w-16 h-16 rounded-xl items-center justify-center text-white font-black text-2xl shadow-xl">U</div>
+            <div>
+                <h1 class="text-4xl font-black tracking-tighter text-slate-900 uppercase leading-none mb-1">League 2026 <span class="text-amber-500">Draft</span></h1>
+                <p class="text-slate-400 font-bold text-lg tracking-[0.1em] uppercase" id="view-mode">KDS SLOT SELECTION PHASE</p>
             </div>
-            <button onclick="processList()" class="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 active:scale-95 transition-transform touch-target">
-                Identify Players
-            </button>
         </div>
-
-        <!-- STEP 2: Select Captains -->
-        <div id="step-2" class="hidden space-y-4">
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                <h2 class="font-semibold text-slate-700 mb-1 text-sm uppercase tracking-wider">2. Select Captains</h2>
-                <p class="text-xs text-slate-400 mb-3">Tap captains (names are sorted A-Z)</p>
-                <div id="captainPool" class="flex flex-wrap gap-2"></div>
+        <div class="flex items-center gap-4">
+            <div id="kds-order-display" class="flex gap-2 mr-4"></div>
+            <div id="draft-status" class="px-8 py-3 bg-slate-900 text-amber-400 rounded-xl font-black text-xl tracking-widest shadow-xl uppercase border-b-4 border-amber-600">
+                Initializing KDS...
             </div>
+        </div>
+    </header>
+
+    <main class="flex-1 grid grid-cols-12 gap-6 min-h-0">
+        
+        <!-- Left: Teams + History -->
+        <div id="team-grid" class="col-span-8 grid grid-cols-3 grid-rows-2 gap-6 min-h-0">
             
-            <div id="selectedCaptainsList" class="space-y-4 hidden">
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Picker Order</h3>
-                        <button onclick="shuffleCaptains()" class="flex items-center gap-1 text-[10px] bg-indigo-50 px-3 py-1.5 rounded-lg font-bold text-indigo-600 active:scale-90 transition-all border border-indigo-100 shadow-sm">
-                            🎲 Randomize Order
-                        </button>
+            <div id="team-0" class="bento-card p-6 team-0">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Team 01</h2>
+                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">9 SLOTS</span>
+                </div>
+                <div class="flex-1 skeuo-inset p-4 overflow-hidden" id="slots-0"></div>
+            </div>
+
+            <div id="team-1" class="bento-card p-6 team-1">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Team 02</h2>
+                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">9 SLOTS</span>
+                </div>
+                <div class="flex-1 skeuo-inset p-4 overflow-hidden" id="slots-1"></div>
+            </div>
+
+            <div id="team-2" class="bento-card p-6 team-2">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Team 03</h2>
+                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">9 SLOTS</span>
+                </div>
+                <div class="flex-1 skeuo-inset p-4 overflow-hidden" id="slots-2"></div>
+            </div>
+
+            <div id="team-3" class="bento-card p-6 team-3">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Team 04</h2>
+                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">9 SLOTS</span>
+                </div>
+                <div class="flex-1 skeuo-inset p-4 overflow-hidden" id="slots-3"></div>
+            </div>
+
+            <div id="team-4" class="bento-card p-6 team-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-black uppercase text-slate-300 team-name truncate">Team 05</h2>
+                    <span class="text-[10px] font-black px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">8 SLOTS</span>
+                </div>
+                <div class="flex-1 skeuo-inset p-4 overflow-hidden" id="slots-4"></div>
+            </div>
+
+            <!-- History Log -->
+            <div id="log-card" class="bento-card p-6 bg-slate-900 text-white">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center shadow-lg">
+                        <svg class="w-5 h-5 text-slate-900" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"></path></svg>
                     </div>
-                    <div id="captainOrder" class="flex flex-col gap-2 transition-all duration-300"></div>
+                    <h2 class="text-lg font-black uppercase tracking-widest">Draft History</h2>
                 </div>
-
-                <!-- Draft Protocol Settings -->
-                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Draft Protocol</h3>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="setProtocol('standard')" id="btn-proto-standard" class="py-2.5 px-3 rounded-xl text-xs font-bold border-2 transition-all">
-                            Standard Snake
-                        </button>
-                        <button onclick="setProtocol('3rr')" id="btn-proto-3rr" class="py-2.5 px-3 rounded-xl text-xs font-bold border-2 transition-all">
-                            3RR Snake
-                        </button>
-                    </div>
-                    <p id="protocolDesc" class="text-[10px] text-slate-400 mt-3 leading-tight text-center px-2"></p>
-                </div>
-            </div>
-
-            <button id="startDraftBtn" onclick="startDraft()" class="hidden w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform">
-                Start Draft
-            </button>
-            <button onclick="resetToStep1()" class="w-full py-2 text-slate-400 text-sm font-medium">Back</button>
-        </div>
-
-        <!-- STEP 3: The Draft -->
-        <div id="step-3" class="hidden space-y-6">
-            
-            <div class="flex flex-wrap justify-between items-center bg-white p-2 rounded-xl border border-slate-100 shadow-sm gap-y-2">
-                 <button onclick="resetToStep1()" class="text-[10px] text-slate-400 font-bold px-2 py-1 uppercase tracking-tight">Full Reset</button>
-                 <button id="undoBtn" onclick="undoPick()" class="hidden text-[10px] text-rose-500 font-bold px-2 py-1 uppercase tracking-tight">Undo Pick</button>
-                 <button id="balancerToggleBtn" onclick="toggleBalancer()" class="hidden text-[10px] text-amber-600 font-bold px-2 py-1 uppercase tracking-tight border border-amber-100 rounded-lg">Enable Balancer</button>
-                 <button onclick="restartSameCaptains()" class="text-[10px] text-indigo-500 font-bold px-2 py-1 uppercase tracking-tight">Redraft</button>
-            </div>
-
-            <!-- Turn Indicator -->
-            <div id="turnIndicator" class="text-white p-4 rounded-2xl shadow-lg text-center animate-pulse transition-colors duration-300">
-                <p class="text-xs uppercase font-bold tracking-widest opacity-80">Current Turn</p>
-                <h2 id="currentPickerName" class="text-xl font-bold">Captain Name</h2>
-            </div>
-
-            <div id="balancerNotice" class="hidden bg-amber-50 border border-amber-200 p-3 rounded-xl text-center">
-                <p class="text-xs text-amber-700 font-medium">⚖️ <strong>Balancer Mode Active</strong></p>
-                <p class="text-[10px] text-amber-600">Tap two players to swap them between teams.</p>
-            </div>
-
-            <div id="poolSection" class="space-y-2">
-                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Available Players (<span id="poolCount">0</span>)</h2>
-                <div id="draftPool" class="flex flex-wrap gap-2"></div>
-            </div>
-
-            <div id="teamRosters" class="space-y-4">
-                <!-- Roster for each captain -->
-            </div>
-
-            <!-- Final Copy Section -->
-            <div id="copySection" class="hidden space-y-3 pt-6 border-t border-slate-200">
-                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Export Options</h2>
-                
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <button onclick="copyToClipboard()" class="py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 text-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-                            <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
-                        </svg>
-                        Copy Text
-                    </button>
-                    <button onclick="copyImageToClipboard()" class="py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 text-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z" />
-                            <path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h8a2 2 0 00-2-2H5z" />
-                        </svg>
-                        Copy Image
-                    </button>
-                    <button onclick="downloadImage()" class="py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 text-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-                        </svg>
-                        Save PNG
-                    </button>
-                </div>
-
-                <div class="bg-white p-4 rounded-2xl border border-slate-200 text-xs whitespace-pre-wrap font-mono shadow-sm opacity-60 max-h-32 overflow-y-auto mt-4">
-                    <div id="previewBox"></div>
+                <div id="draft-log" class="flex-1 overflow-y-auto text-xs space-y-2 font-medium custom-scrollbar pr-2">
+                    <div class="text-slate-500 italic">Waiting for first pick...</div>
                 </div>
             </div>
         </div>
 
-        <!-- Success Toast -->
-        <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-2xl opacity-0 transition-opacity pointer-events-none text-sm z-50 shadow-xl text-center">
-            Action successful! ✅
-        </div>
-    </div>
+        <!-- Right: Player Pool -->
+        <div class="col-span-4 bento-card p-8 min-h-0" id="pool-container" style="opacity: 0.5; pointer-events: none;">
+            <div class="flex justify-between items-end mb-6">
+                <h2 class="text-2xl font-black uppercase tracking-tighter">Athletes</h2>
+                <div class="relative w-48">
+                    <input type="text" id="player-search" placeholder="Search..." class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 pl-10 focus:ring-4 focus:ring-amber-500/20 outline-none text-sm font-bold transition-all">
+                    <svg class="w-5 h-5 absolute left-3 top-2.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+            </div>
 
-    <!-- Hidden Export Template -->
-    <div id="export-container">
-        <div class="text-center mb-10">
-            <h1 class="text-4xl font-black text-indigo-600 italic uppercase tracking-tighter">Lineup Draft</h1>
-            <div id="export-date" class="text-slate-400 font-bold text-sm tracking-widest mt-1"></div>
+            <div id="player-pool" class="flex-1 grid grid-cols-3 gap-x-2 gap-y-2 content-start overflow-hidden">
+                <!-- Players dynamically loaded -->
+            </div>
+
+            <div class="mt-6 pt-6 border-t border-slate-100 h-20 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Next in Line</p>
+                    <div id="up-next" class="flex gap-2"></div>
+                </div>
+                <div class="text-right">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Progress</p>
+                    <div id="pick-progress" class="text-3xl font-black text-slate-900">0 / 39</div>
+                </div>
+            </div>
         </div>
-        <div id="export-teams" class="export-grid">
-            <!-- Teams will be injected here -->
-        </div>
-        <div class="mt-12 text-center text-slate-300 font-bold text-xs uppercase tracking-widest border-t pt-4">
-            Generated with UFA 🐍 Draft
-        </div>
-    </div>
+    </main>
 
     <script>
-        let allPlayers = [];
-        let captains = [];
-        let availablePlayers = [];
-        let teams = {}; // captainIndex -> array of players
-        let draftSequence = [];
-        let currentSequenceIndex = 0;
-        let swapSelection = null; // { teamIdx, playerIdx }
-        let isBalancerActive = false;
-        let draftProtocol = 'standard'; // 'standard' or '3rr'
-
-        const teamColorPalette = [
-            { id: 'indigo', main: 'bg-indigo-600', light: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700', active: 'border-indigo-500 ring-indigo-100', num: 'text-indigo-400', hex: '#4f46e5', hexLight: '#eef2ff' },
-            { id: 'rose', main: 'bg-rose-600', light: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-700', active: 'border-rose-500 ring-rose-100', num: 'text-rose-400', hex: '#e11d48', hexLight: '#fff1f2' },
-            { id: 'emerald', main: 'bg-emerald-600', light: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', active: 'border-emerald-500 ring-emerald-100', num: 'text-emerald-400', hex: '#059669', hexLight: '#ecfdf5' },
-            { id: 'amber', main: 'bg-amber-600', light: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', active: 'border-amber-500 ring-amber-100', num: 'text-amber-400', hex: '#d97706', hexLight: '#fffbeb' },
-            { id: 'violet', main: 'bg-violet-600', light: 'bg-violet-50', border: 'border-violet-200', text: 'text-violet-700', active: 'border-violet-500 ring-violet-100', num: 'text-violet-400', hex: '#7c3aed', hexLight: '#f5f3ff' },
-            { id: 'cyan', main: 'bg-cyan-600', light: 'bg-cyan-50', border: 'border-cyan-200', text: 'text-cyan-700', active: 'border-cyan-500 ring-cyan-100', num: 'text-cyan-400', hex: '#0891b2', hexLight: '#ecfeff' }
+        const ANCHORS = [
+            { id: 1, name: "Philip", isAnchor: true },
+            { id: 2, name: "Azim", isAnchor: true },
+            { id: 3, name: "Zayyan", isAnchor: true },
+            { id: 4, name: "Rizam", isAnchor: true },
+            { id: 5, name: "Mode", isAnchor: true }
         ];
 
-        function scrubHiddenChars(str) {
-            if (!str) return "";
-            return str.replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, "").trim();
-        }
+        const POOL_PLAYERS = [
+            { id: 6, name: "Shamin" }, { id: 7, name: "Miph" }, { id: 8, name: "Fauz" }, 
+            { id: 9, name: "Finn" }, { id: 10, name: "Afrah" }, { id: 11, name: "Aahil" }, 
+            { id: 12, name: "Aisha" }, { id: 13, name: "Amsal" }, { id: 14, name: "Aryf" }, 
+            { id: 15, name: "Babaa" }, { id: 16, name: "Eijaz" }, { id: 17, name: "Hamko" }, 
+            { id: 18, name: "Hassaan" }, { id: 19, name: "Imma" }, { id: 20, name: "Jef" }, 
+            { id: 21, name: "Jilaau" }, { id: 22, name: "Jin" }, { id: 23, name: "Junayd" }, 
+            { id: 24, name: "Kaitlinn" }, { id: 25, name: "Kat" }, { id: 26, name: "Lamath" }, 
+            { id: 27, name: "Ma'an" }, { id: 28, name: "Maahy" }, { id: 29, name: "Maeesh" }, 
+            { id: 30, name: "Malaka" }, { id: 31, name: "Mateo" }, { id: 32, name: "Miju" }, 
+            { id: 33, name: "Moadz" }, { id: 34, name: "Muky" }, { id: 35, name: "Nawaz" }, 
+            { id: 36, name: "Piko" }, { id: 37, name: "Saam" }, { id: 38, name: "Shaaif" }, 
+            { id: 39, name: "Shazeen" }, { id: 40, name: "Tanzeem" }, { id: 41, name: "Uraiba" }, 
+            { id: 42, name: "Yoosuf" }, { id: 43, name: "Ewan" }, { id: 44, name: "Mushaan" }
+        ].sort((a, b) => a.name.localeCompare(b.name));
 
-        function processList() {
-            const rawText = document.getElementById('rawInput').value;
-            if (!rawText.trim()) return;
+        const teams = [
+            { id: 0, name: "Team 01", anchor: null, players: [], max: 9, color: '#3b82f6' },
+            { id: 1, name: "Team 02", anchor: null, players: [], max: 9, color: '#10b981' },
+            { id: 2, name: "Team 03", anchor: null, players: [], max: 9, color: '#ef4444' },
+            { id: 3, name: "Team 04", anchor: null, players: [], max: 9, color: '#8b5cf6' },
+            { id: 4, name: "Team 05", anchor: null, players: [], max: 8, color: '#f97316' }
+        ];
 
-            const lines = rawText.split('\n');
-            let tempPlayers = [];
+        let phase = 'KDS';
+        let kdsOrder = [];
+        let kdsIndex = 0;
+        let draftOrder = [];
+        let currentPickIndex = 0;
+        let draftedIds = new Set();
 
-            lines.forEach(line => {
-                let lineClean = scrubHiddenChars(line);
-                if (!lineClean) return;
-                const isPlayerLine = /^\d+[\.\)]/.test(lineClean);
-                if (isPlayerLine) {
-                    let name = lineClean.replace(/^\d+[\.\)\s]+/, ''); 
-                    name = name.replace(/\s*\([^)]*\)/g, ''); 
-                    name = name.replace(/50\/50/g, ''); 
-                    let finalName = scrubHiddenChars(name);
-                    if (finalName) tempPlayers.push(finalName);
-                }
-            });
-
-            if (tempPlayers.length < 2) {
-                alert("Need at least 2 players to start a draft.");
-                return;
+        function init() {
+            kdsOrder = [...ANCHORS].sort(() => Math.random() - 0.5);
+            renderKDSUI();
+            renderPlayers();
+            renderTeams();
+            updateDraftState();
+            document.getElementById('player-search').addEventListener('input', renderPlayers);
+            for(let i=0; i<5; i++) {
+                document.getElementById(`team-${i}`).onclick = () => selectKDSSlot(i);
+                document.getElementById(`team-${i}`).classList.add('kds-active');
             }
-
-            allPlayers = [...new Set(tempPlayers)].sort((a, b) => a.localeCompare(b));
-            showStep2();
         }
 
-        function showStep2() {
-            document.getElementById('step-1').classList.add('hidden');
-            document.getElementById('step-2').classList.remove('hidden');
-            document.getElementById('subHeader').textContent = "Select Captains";
-            captains = [];
-            setProtocol('standard');
-            renderCaptainSelection();
+        function renderKDSUI() {
+            const display = document.getElementById('kds-order-display');
+            display.innerHTML = '';
+            kdsOrder.forEach((anchor, i) => {
+                const badge = document.createElement('div');
+                badge.className = `px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all shadow-md ${i === kdsIndex ? 'bg-amber-500 text-white animate-pulse' : 'bg-slate-200 text-slate-500'}`;
+                badge.innerText = `${i+1}. ${anchor.name}`;
+                display.appendChild(badge);
+            });
+            if (phase === 'KDS') {
+                document.getElementById('draft-status').innerText = `${kdsOrder[kdsIndex].name} - Select Your Draft Position`;
+            }
         }
 
-        function renderCaptainSelection() {
-            const container = document.getElementById('captainPool');
+        function selectKDSSlot(teamIdx) {
+            if (phase !== 'KDS') return;
+            if (teams[teamIdx].anchor) return;
+            const anchor = kdsOrder[kdsIndex];
+            teams[teamIdx].anchor = anchor;
+            teams[teamIdx].name = anchor.name.toUpperCase();
+            const card = document.getElementById(`team-${teamIdx}`);
+            card.classList.remove('kds-active');
+            card.querySelector('.team-name').innerText = teams[teamIdx].name;
+            card.querySelector('.team-name').classList.remove('text-slate-300');
+            card.querySelector('.team-name').classList.add('text-slate-900');
+            anchor.pickedInRound = 0;
+            teams[teamIdx].players.push(anchor);
+            kdsIndex++;
+            if (kdsIndex >= 5) {
+                startDraftPhase();
+            } else {
+                renderKDSUI();
+            }
+            renderTeams();
+        }
+
+        function startDraftPhase() {
+            phase = 'DRAFT';
+            document.getElementById('view-mode').innerText = 'OFFICIAL PLAYER DRAFT PHASE';
+            document.getElementById('pool-container').style.opacity = '1';
+            document.getElementById('pool-container').style.pointerEvents = 'auto';
+            document.getElementById('kds-order-display').innerHTML = '<span class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">KDS Phase Concluded</span>';
+            
+            draftOrder = [];
+            for(let i=4; i>=0; i--) draftOrder.push({ team: i, round: 2 });
+            for(let i=4; i>=0; i--) draftOrder.push({ team: i, round: 3 });
+            for(let r=4; r<=10; r++) {
+                if(r % 2 === 0) { 
+                    for(let i=0; i<5; i++) draftOrder.push({ team: i, round: r });
+                } else { 
+                    for(let i=4; i>=0; i--) draftOrder.push({ team: i, round: r });
+                }
+            }
+            
+            for(let i=0; i<5; i++) {
+                document.getElementById(`team-${i}`).onclick = null;
+                document.getElementById(`team-${i}`).style.cursor = 'default';
+            }
+            updateDraftState();
+        }
+
+        function renderPlayers() {
+            const container = document.getElementById('player-pool');
+            const search = document.getElementById('player-search').value.toLowerCase();
             container.innerHTML = '';
-            allPlayers.forEach((name) => {
-                const isSelected = captains.includes(name);
-                const btn = document.createElement('button');
-                btn.className = `border px-4 py-2 rounded-xl text-sm font-medium shadow-sm transition-all touch-target ${isSelected ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-slate-200'}`;
-                btn.textContent = name;
-                btn.onclick = () => toggleCaptain(name);
-                container.appendChild(btn);
-            });
-            updateCaptainOrderUI();
-        }
-
-        function toggleCaptain(name) {
-            const idx = captains.indexOf(name);
-            if (idx > -1) {
-                captains.splice(idx, 1);
-            } else {
-                captains.push(name);
-            }
-            renderCaptainSelection();
-        }
-
-        function shuffleCaptains() {
-            const orderContainer = document.getElementById('captainOrder');
-            orderContainer.classList.add('shuffling');
-            
-            setTimeout(() => {
-                for (let i = captains.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [captains[i], captains[j]] = [captains[j], captains[i]];
+            POOL_PLAYERS.forEach(player => {
+                if (player.name.toLowerCase().includes(search)) {
+                    const isDrafted = draftedIds.has(player.id);
+                    const el = document.createElement('div');
+                    el.className = `skeuo-button px-2 py-2.5 rounded-xl flex items-center justify-between transition-all ${isDrafted ? 'drafted' : 'cursor-pointer'}`;
+                    el.onclick = () => !isDrafted && draftPlayer(player.id);
+                    el.innerHTML = `
+                        <div class="flex items-center gap-2 overflow-hidden">
+                            <div class="w-6 h-6 rounded-lg bg-slate-100 flex-shrink-0 flex items-center justify-center font-black text-[10px] text-slate-400">
+                                ${player.name[0]}
+                            </div>
+                            <span class="font-bold text-xs text-slate-700 truncate">${player.name}</span>
+                        </div>
+                    `;
+                    container.appendChild(el);
                 }
-                updateCaptainOrderUI();
-                orderContainer.classList.remove('shuffling');
-            }, 300);
+            });
         }
 
-        function setProtocol(proto) {
-            draftProtocol = proto;
-            const standardBtn = document.getElementById('btn-proto-standard');
-            const rrBtn = document.getElementById('btn-proto-3rr');
-            const desc = document.getElementById('protocolDesc');
-
-            if (proto === 'standard') {
-                standardBtn.className = "py-2.5 px-3 rounded-xl text-xs font-bold border-2 bg-indigo-600 text-white border-indigo-600";
-                rrBtn.className = "py-2.5 px-3 rounded-xl text-xs font-bold border-2 bg-white text-slate-600 border-slate-200";
-                desc.textContent = "Classic: Round 1 (1,2,3), Round 2 (3,2,1), Round 3 (1,2,3)...";
-            } else {
-                rrBtn.className = "py-2.5 px-3 rounded-xl text-xs font-bold border-2 bg-indigo-600 text-white border-indigo-600";
-                standardBtn.className = "py-2.5 px-3 rounded-xl text-xs font-bold border-2 bg-white text-slate-600 border-slate-200";
-                desc.textContent = "Advanced: Rounds 1&2 are normal. Round 3 'flips' again (3,2,1) to balance #1 pick.";
-            }
+        function renderTeams() {
+            teams.forEach((team, idx) => {
+                const slots = document.getElementById(`slots-${idx}`);
+                slots.innerHTML = '';
+                for(let i=0; i<team.max; i++) {
+                    const p = team.players[i];
+                    const row = document.createElement('div');
+                    row.className = 'slot-row flex items-center gap-2';
+                    row.innerHTML = `
+                        <span class="w-5 text-[10px] font-black text-slate-300">#${i+1}</span>
+                        <span class="flex-1 font-bold text-slate-800 text-sm tracking-tight">${p ? p.name : ''}</span>
+                        ${p ? `<span class="text-[8px] font-black text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">${p.pickedInRound === 0 ? 'SEED 0' : 'R'+p.pickedInRound}</span>` : ''}
+                    `;
+                    slots.appendChild(row);
+                }
+            });
         }
 
-        function updateCaptainOrderUI() {
-            const list = document.getElementById('selectedCaptainsList');
-            const startBtn = document.getElementById('startDraftBtn');
-            const orderContainer = document.getElementById('captainOrder');
+        function draftPlayer(id) {
+            if (phase !== 'DRAFT' || currentPickIndex >= draftOrder.length) return;
             
-            if (captains.length > 0) {
-                list.classList.remove('hidden');
-                startBtn.classList.remove('hidden');
-                orderContainer.innerHTML = captains.map((c, i) => {
-                    const color = teamColorPalette[i % teamColorPalette.length];
-                    return `<div class="${color.light} ${color.text} p-3 rounded-xl text-sm font-bold flex justify-between items-center shadow-sm border ${color.border} animate-in fade-in slide-in-from-left-2 duration-300" style="animation-delay: ${i * 50}ms">
-                        <span class="flex items-center gap-3">
-                            <span class="bg-white/80 w-6 h-6 rounded-full flex items-center justify-center text-[10px] shadow-inner">${i + 1}</span>
-                            ${c}
-                        </span>
-                    </div>`;
-                }).join('');
-            } else {
-                list.classList.add('hidden');
-                startBtn.classList.add('hidden');
-            }
-        }
+            const player = POOL_PLAYERS.find(p => p.id === id);
+            const currentPick = draftOrder[currentPickIndex];
+            const team = teams[currentPick.team];
 
-        function startDraft() {
-            if (captains.length < 2) {
-                alert("Select at least 2 captains.");
+            if (team.players.length >= team.max) {
+                currentPickIndex++;
+                draftPlayer(id);
                 return;
             }
-            availablePlayers = allPlayers.filter(p => !captains.includes(p)).sort((a, b) => a.localeCompare(b));
-            teams = {};
-            captains.forEach((c, i) => { teams[i] = []; });
+
+            player.pickedInRound = currentPick.round;
+            team.players.push(player);
+            draftedIds.add(id);
+
+            const log = document.getElementById('draft-log');
+            if (draftedIds.size === 1) log.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = "flex justify-between items-center text-slate-200 border-b border-slate-800/50 pb-1.5 animate-in fade-in slide-in-from-left";
+            div.innerHTML = `
+                <div class="flex gap-2 items-center">
+                    <span class="font-black text-sm px-1.5 py-0.5 rounded bg-slate-800" style="color: ${team.color}">P${draftedIds.size}</span>
+                    <span class="font-bold text-white text-base">${player.name}</span>
+                </div>
+                <span class="text-[10px] uppercase font-black text-slate-500">${team.name}</span>
+            `;
+            log.prepend(div);
+
+            currentPickIndex++;
+            renderPlayers();
+            renderTeams();
+            updateDraftState();
+        }
+
+        function updateDraftState() {
+            document.querySelectorAll('.bento-card').forEach(c => c.classList.remove('active-team'));
+            const count = draftedIds.size;
+            document.getElementById('pick-progress').innerText = `${count} / 39`;
             
-            // Generate Sequence based on Protocol
-            draftSequence = [];
-            let totalPicks = availablePlayers.length;
-            let round = 0;
-            while (draftSequence.length < totalPicks) {
-                let roundOrder = [];
-                for (let i = 0; i < captains.length; i++) roundOrder.push(i);
-                
-                let shouldReverse = false;
-                if (draftProtocol === 'standard') {
-                    shouldReverse = (round % 2 !== 0);
-                } else {
-                    // 3RR Logic: 0:F, 1:B, 2:B, 3:F, 4:B, 5:F
-                    if (round === 0) shouldReverse = false;
-                    else if (round === 1 || round === 2) shouldReverse = true;
-                    else shouldReverse = (round % 2 === 0);
+            if (phase === 'DRAFT') {
+                if (count >= 39) {
+                    document.getElementById('draft-status').innerText = "DRAFT COMPLETE";
+                    document.getElementById('main-body').classList.add('completed');
+                    document.getElementById('view-mode').innerText = "SEASON 1 FINAL ROSTERS";
+                    return;
                 }
 
-                if (shouldReverse) roundOrder.reverse();
-                
-                roundOrder.forEach(idx => {
-                    if (draftSequence.length < totalPicks) draftSequence.push(idx);
-                });
-                round++;
-            }
+                let pick = draftOrder[currentPickIndex];
+                while(pick && teams[pick.team].players.length >= teams[pick.team].max) {
+                    currentPickIndex++;
+                    pick = draftOrder[currentPickIndex];
+                }
 
-            currentSequenceIndex = 0;
-            swapSelection = null;
-            isBalancerActive = false;
-            document.getElementById('step-2').classList.add('hidden');
-            document.getElementById('step-3').classList.remove('hidden');
-            document.getElementById('subHeader').textContent = "Drafting Teams";
-            renderDraftBoard();
-        }
+                if (pick) {
+                    const activeCard = document.getElementById(`team-${pick.team}`);
+                    activeCard.classList.add('active-team');
+                    document.getElementById('draft-status').innerText = `ROUND ${pick.round} | ${teams[pick.team].name} ON CLOCK`;
 
-        function toggleBalancer() {
-            isBalancerActive = !isBalancerActive;
-            swapSelection = null;
-            renderDraftBoard();
-        }
-
-        function renderDraftBoard() {
-            const poolContainer = document.getElementById('draftPool');
-            const rosterContainer = document.getElementById('teamRosters');
-            const poolCount = document.getElementById('poolCount');
-            const balancerBtn = document.getElementById('balancerToggleBtn');
-            const undoBtn = document.getElementById('undoBtn');
-            const turnIndicator = document.getElementById('turnIndicator');
-            const draftFinished = currentSequenceIndex >= draftSequence.length;
-
-            poolCount.textContent = availablePlayers.length;
-            undoBtn.classList.toggle('hidden', currentSequenceIndex === 0);
-
-            poolContainer.innerHTML = '';
-            if (!draftFinished) {
-                availablePlayers.forEach((name, index) => {
-                    const btn = document.createElement('button');
-                    btn.className = "bg-white border border-slate-200 px-4 py-3 rounded-xl text-sm font-bold shadow-sm active:scale-95 active:bg-slate-50 transition-all touch-target";
-                    btn.textContent = name;
-                    btn.onclick = () => makePick(index);
-                    poolContainer.appendChild(btn);
-                });
-                document.getElementById('poolSection').classList.remove('hidden');
-                document.getElementById('balancerNotice').classList.add('hidden');
-                balancerBtn.classList.add('hidden');
-            } else {
-                document.getElementById('poolSection').classList.add('hidden');
-                balancerBtn.classList.remove('hidden');
-                balancerBtn.textContent = isBalancerActive ? "Disable Balancer" : "Enable Balancer";
-                balancerBtn.className = isBalancerActive ? "text-[10px] bg-amber-600 text-white font-bold px-2 py-1 uppercase tracking-tight border border-amber-600 rounded-lg" : "text-[10px] text-amber-600 font-bold px-2 py-1 uppercase tracking-tight border border-amber-100 rounded-lg";
-                document.getElementById('balancerNotice').classList.toggle('hidden', !isBalancerActive);
-            }
-
-            if (!draftFinished) {
-                const currentCaptainIdx = draftSequence[currentSequenceIndex];
-                const color = teamColorPalette[currentCaptainIdx % teamColorPalette.length];
-                document.getElementById('currentPickerName').textContent = captains[currentCaptainIdx];
-                turnIndicator.className = `${color.main} text-white p-4 rounded-2xl shadow-lg text-center animate-pulse transition-colors duration-300`;
-                turnIndicator.classList.remove('hidden');
-                document.getElementById('copySection').classList.add('hidden');
-            } else {
-                turnIndicator.classList.add('hidden');
-                document.getElementById('copySection').classList.remove('hidden');
-            }
-
-            rosterContainer.innerHTML = '';
-            captains.forEach((cap, i) => {
-                const isTurn = (!draftFinished && draftSequence[currentSequenceIndex] === i);
-                const color = teamColorPalette[i % teamColorPalette.length];
-                const div = document.createElement('div');
-                div.className = `bg-white p-4 rounded-2xl border-2 shadow-sm transition-all ${isTurn ? `${color.active} ring-2` : 'border-slate-100'}`;
-                const fullRoster = [cap, ...teams[i]];
-                const totalItems = fullRoster.length;
-                const rowsPerCol = Math.ceil(totalItems / 2);
-
-                const itemsHtml = fullRoster.map((name, pIdx) => {
-                    const isCaptain = pIdx === 0;
-                    const isSelected = !isCaptain && swapSelection && swapSelection.teamIdx === i && swapSelection.playerIdx === (pIdx - 1);
-                    const commonClasses = "text-[11px] py-1 px-2 border rounded-lg transition-colors overflow-hidden text-ellipsis whitespace-nowrap";
-                    const activeClasses = isSelected ? 'swap-selected' : (isBalancerActive && !isCaptain ? 'bg-slate-50 hover:bg-slate-100 active:bg-slate-200' : 'bg-slate-50/50');
-                    const borderClasses = isCaptain ? `${color.border} ${color.light} font-bold ${color.text}` : 'border-slate-100';
-                    return `
-                    <div onclick="if(isBalancerActive && !${isCaptain}) handleRosterClick(${i}, ${pIdx - 1})" 
-                         class="${commonClasses} ${isBalancerActive && !isCaptain ? 'cursor-pointer' : 'cursor-default'} ${activeClasses} ${borderClasses}">
-                        <span class="${isSelected || isCaptain ? color.num : 'text-slate-400'} font-mono text-[9px] mr-1">${pIdx + 1}.</span>${name}
-                    </div>`;
-                }).join('');
-
-                div.innerHTML = `
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="font-bold text-slate-900 text-sm">Team ${cap}</h3>
-                        <span class="text-[9px] ${color.light} ${color.text} px-2 py-0.5 rounded-full font-bold uppercase">${totalItems} Total</span>
-                    </div>
-                    <div class="roster-grid gap-2" style="grid-template-rows: repeat(${rowsPerCol}, minmax(0, 1fr));">
-                        ${itemsHtml}
-                    </div>
-                `;
-                rosterContainer.appendChild(div);
-            });
-            updateOutputs();
-        }
-
-        function makePick(index) {
-            if (currentSequenceIndex >= draftSequence.length) return;
-            const player = availablePlayers.splice(index, 1)[0];
-            const captainIdx = draftSequence[currentSequenceIndex];
-            teams[captainIdx].push(player);
-            currentSequenceIndex++;
-            renderDraftBoard();
-        }
-
-        function undoPick() {
-            if (currentSequenceIndex === 0) return;
-            currentSequenceIndex--;
-            const captainIdx = draftSequence[currentSequenceIndex];
-            const undonePlayer = teams[captainIdx].pop();
-            availablePlayers.push(undonePlayer);
-            availablePlayers.sort((a, b) => a.localeCompare(b));
-            swapSelection = null;
-            renderDraftBoard();
-        }
-
-        function handleRosterClick(teamIdx, playerIdx) {
-            if (currentSequenceIndex < draftSequence.length || !isBalancerActive) return;
-            if (!swapSelection) {
-                swapSelection = { teamIdx, playerIdx };
-            } else {
-                const temp = teams[swapSelection.teamIdx][swapSelection.playerIdx];
-                teams[swapSelection.teamIdx][swapSelection.playerIdx] = teams[teamIdx][playerIdx];
-                teams[teamIdx][playerIdx] = temp;
-                swapSelection = null;
-            }
-            renderDraftBoard();
-        }
-
-        function restartSameCaptains() {
-            if (!confirm("Start the draft over with the same captains? Current teams will be cleared.")) return;
-            startDraft();
-        }
-
-        function updateOutputs() {
-            let text = "";
-            const exportTeamsContainer = document.getElementById('export-teams');
-            const exportDate = document.getElementById('export-date');
-            exportTeamsContainer.innerHTML = '';
-            exportDate.textContent = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-
-            captains.forEach((cap, i) => {
-                const color = teamColorPalette[i % teamColorPalette.length];
-                
-                // Text Output
-                text += `*Team ${cap}:*\n`;
-                text += `1. ${cap} (C)\n`;
-                teams[i].forEach((p, pIdx) => { text += `${pIdx + 2}. ${p}\n`; });
-                text += "\n";
-
-                // Visual Export Element
-                const teamEl = document.createElement('div');
-                teamEl.className = "flex flex-col gap-2";
-                
-                const roster = [cap, ...teams[i]];
-                const rosterHtml = roster.map((name, idx) => {
-                    const isCap = idx === 0;
-                    return `
-                    <div style="background: ${isCap ? color.hexLight : '#f8fafc'}; border: 1px solid ${isCap ? color.hex : '#f1f5f9'}; padding: 12px; border-radius: 12px; font-weight: ${isCap ? '800' : '500'}; color: ${isCap ? color.hex : '#1e293b'}; display: flex; align-items: center; font-size: 18px;">
-                        <span style="font-family: monospace; color: ${color.hex}; opacity: 0.6; margin-right: 12px; font-size: 24px; font-weight: 900; min-width: 40px;">${idx + 1}.</span>
-                        ${name}
-                    </div>`;
-                }).join('');
-
-                teamEl.innerHTML = `
-                    <div style="color: #64748b; font-weight: 900; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Team ${cap}</div>
-                    <div class="flex flex-col gap-2">
-                        ${rosterHtml}
-                    </div>
-                `;
-                exportTeamsContainer.appendChild(teamEl);
-            });
-            document.getElementById('previewBox').textContent = text.trim();
-        }
-
-        async function copyImageToClipboard() {
-            const container = document.getElementById('export-container');
-            const toast = document.getElementById('toast');
-            
-            try {
-                const canvas = await html2canvas(container, {
-                    scale: 2,
-                    backgroundColor: "#ffffff",
-                    logging: false
-                });
-
-                canvas.toBlob(async (blob) => {
-                    if (!blob) {
-                        showToast("Error creating image. ❌");
-                        return;
+                    const nextPicks = document.getElementById('up-next');
+                    nextPicks.innerHTML = '';
+                    let found = 0;
+                    for(let i=1; found < 3 && (currentPickIndex + i) < draftOrder.length; i++) {
+                        const fut = draftOrder[currentPickIndex + i];
+                        if(teams[fut.team].players.length < teams[fut.team].max) {
+                            const el = document.createElement('div');
+                            el.className = "skeuo-inset px-4 py-1.5 text-[10px] font-black uppercase text-slate-500 flex items-center gap-2";
+                            el.innerHTML = `<div class="w-1.5 h-1.5 rounded-full" style="background: ${teams[fut.team].color}"></div> ${teams[fut.team].name}`;
+                            nextPicks.appendChild(el);
+                            found++;
+                        }
                     }
-
-                    try {
-                        const item = new ClipboardItem({ "image/png": blob });
-                        await navigator.clipboard.write([item]);
-                        showToast("Image copied to clipboard! 📋✅");
-                    } catch (err) {
-                        console.error('Clipboard copy failed:', err);
-                        downloadImage();
-                        showToast("Copy failed. Image saved to gallery instead. 💾");
-                    }
-                }, "image/png");
-
-            } catch (err) {
-                console.error('Image generation failed:', err);
-                showToast("Failed to generate image. ❌");
+                }
             }
         }
 
-        function downloadImage() {
-            const container = document.getElementById('export-container');
-            
-            html2canvas(container, {
-                scale: 2,
-                backgroundColor: "#ffffff",
-                logging: false
-            }).then(canvas => {
-                const dataUrl = canvas.toDataURL("image/png");
-                const link = document.createElement('a');
-                link.download = `UFA-Draft-${new Date().getTime()}.png`;
-                link.href = dataUrl;
-                link.click();
-                showToast("PNG saved to device! 💾✅");
-            });
-        }
-
-        function copyToClipboard() {
-            const text = document.getElementById('previewBox').textContent;
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            showToast("Text copied to clipboard! 📋✅");
-        }
-
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.style.opacity = '1';
-            setTimeout(() => { toast.style.opacity = '0'; }, 2500);
-        }
-
-        function resetToStep1() {
-            if (currentSequenceIndex > 0 && currentSequenceIndex < draftSequence.length) {
-                if(!confirm("Cancel draft and start over?")) return;
-            }
-            document.getElementById('step-1').classList.remove('hidden');
-            document.getElementById('step-2').classList.add('hidden');
-            document.getElementById('step-3').classList.add('hidden');
-            document.getElementById('subHeader').textContent = "Paste the list to begin";
-        }
+        window.onload = init;
     </script>
 </body>
 </html>
