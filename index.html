@@ -140,7 +140,9 @@
         .completed #draft-log {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
-            gap: 0.4rem 1.5rem;
+            grid-template-rows: repeat(7, min-content); /* 39 picks / 6 columns = 7 rows */
+            grid-auto-flow: column; /* Flow down columns instead of rows */
+            gap: 0.3rem 1.5rem;
             align-content: start;
         }
         .completed .slot-row span.player-name {
@@ -160,6 +162,13 @@
             color: var(--ufa-navy);
             transform: scale(1.05);
             box-shadow: 0 0 30px rgba(234, 179, 8, 0.4);
+        }
+
+        /* Round highlighting in log */
+        .round-end {
+            border-bottom: 2px solid rgba(234, 179, 8, 0.3);
+            background: rgba(255, 255, 255, 0.03);
+            margin-bottom: 4px;
         }
     </style>
 </head>
@@ -487,21 +496,25 @@
         function renderLog() {
             const log = document.getElementById('draft-log');
             log.innerHTML = '';
+            const isCompleted = document.getElementById('main-body').classList.contains('completed');
             
-            logData.forEach(item => {
+            logData.forEach((item, index) => {
                 const div = document.createElement('div');
-                div.className = "flex justify-between items-center text-slate-200 border-b border-slate-800/50 pb-1.5 animate-in fade-in slide-in-from-left";
+                // Highlight end of rounds (every 5 picks)
+                const isRoundEnd = (item.pick % 5 === 0);
+                
+                div.className = `flex justify-between items-center text-slate-200 border-b border-slate-800/50 pb-1 px-2 animate-in fade-in slide-in-from-left ${isRoundEnd && isCompleted ? 'round-end' : ''}`;
                 div.innerHTML = `
                     <div class="flex gap-2 items-center">
                         <span class="font-black text-sm px-1.5 py-0.5 rounded bg-slate-800" style="color: ${item.color}">P${item.pick}</span>
-                        <span class="font-bold text-white text-base">${item.player}</span>
+                        <span class="font-bold text-white text-base truncate">${item.player}</span>
                     </div>
-                    <span class="text-[10px] uppercase font-black text-slate-500">${item.team}</span>
+                    <span class="text-[9px] uppercase font-black text-slate-500">${item.team}</span>
                 `;
                 log.appendChild(div);
             });
             
-            if (!document.getElementById('main-body').classList.contains('completed')) {
+            if (!isCompleted) {
                 log.scrollTop = log.scrollHeight;
             }
         }
