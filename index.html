@@ -113,14 +113,48 @@
         }
         .completed #team-grid {
             grid-column: span 12 / span 12;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
-            grid-template-rows: 1fr;
+            display: grid !important;
+            grid-template-columns: repeat(5, 1fr) !important;
+            grid-template-rows: 52% 45% !important; /* History takes bottom 45% */
+            gap: 1.5rem !important;
+            height: 100%;
         }
-        .completed .bento-card {
+        .completed #team-0, .completed #team-1, .completed #team-2, .completed #team-3, .completed #team-4 {
+            grid-row: 1 / 2;
             height: 100%;
         }
         .completed #log-card {
-            display: none;
+            display: flex !important;
+            grid-row: 2 / 3;
+            grid-column: 1 / 6;
+            height: 100%;
+        }
+        /* Make log items side-by-side in footer */
+        .completed #draft-log {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.4rem 1.5rem;
+            align-content: start;
+        }
+        /* Increase for final rosters */
+        .completed .slot-row span.player-name {
+            font-size: 1.25rem !important;
+            line-height: 1.3;
+        }
+        .completed .team-name {
+            font-size: 2.25rem; /* Large and bold for final frame */
+        }
+        
+        /* Hover Export Style */
+        .btn-export {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-export:hover {
+            background: var(--ufa-gold);
+            color: var(--ufa-navy);
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(234, 179, 8, 0.4);
         }
     </style>
 </head>
@@ -138,7 +172,7 @@
         </div>
         <div class="flex items-center gap-4">
             <div id="kds-order-display" class="flex gap-2 mr-4"></div>
-            <div id="draft-status" class="px-8 py-3 bg-slate-900 text-amber-400 rounded-xl font-black text-xl tracking-widest shadow-xl uppercase border-b-4 border-amber-600">
+            <div id="draft-status" class="px-8 py-3 bg-slate-900 text-amber-400 rounded-xl font-black text-xl tracking-widest shadow-xl uppercase border-b-4 border-amber-600 transition-all">
                 Initializing KDS...
             </div>
         </div>
@@ -269,6 +303,7 @@
         let draftOrder = [];
         let currentPickIndex = 0;
         let draftedIds = new Set();
+        let logData = [];
 
         function init() {
             kdsOrder = [...ANCHORS].sort(() => Math.random() - 0.5);
@@ -377,7 +412,7 @@
                     row.className = 'slot-row flex items-center gap-2';
                     row.innerHTML = `
                         <span class="w-5 text-[10px] font-black text-slate-300">#${i+1}</span>
-                        <span class="flex-1 font-bold text-slate-800 text-sm tracking-tight">${p ? p.name : ''}</span>
+                        <span class="flex-1 font-bold text-slate-800 text-sm tracking-tight player-name">${p ? p.name : ''}</span>
                         ${p ? `<span class="text-[8px] font-black text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">${p.pickedInRound === 0 ? 'SEED 0' : 'R'+p.pickedInRound}</span>` : ''}
                     `;
                     slots.appendChild(row);
@@ -401,24 +436,73 @@
             player.pickedInRound = currentPick.round;
             team.players.push(player);
             draftedIds.add(id);
+            logData.push({ pick: draftedIds.size, player: player.name, team: team.name, color: team.color, round: currentPick.round });
 
-            const log = document.getElementById('draft-log');
-            if (draftedIds.size === 1) log.innerHTML = '';
-            const div = document.createElement('div');
-            div.className = "flex justify-between items-center text-slate-200 border-b border-slate-800/50 pb-1.5 animate-in fade-in slide-in-from-left";
-            div.innerHTML = `
-                <div class="flex gap-2 items-center">
-                    <span class="font-black text-sm px-1.5 py-0.5 rounded bg-slate-800" style="color: ${team.color}">P${draftedIds.size}</span>
-                    <span class="font-bold text-white text-base">${player.name}</span>
-                </div>
-                <span class="text-[10px] uppercase font-black text-slate-500">${team.name}</span>
-            `;
-            log.prepend(div);
-
+            renderLog();
             currentPickIndex++;
             renderPlayers();
             renderTeams();
             updateDraftState();
+        }
+
+        function renderLog() {
+            const log = document.getElementById('draft-log');
+            log.innerHTML = '';
+            
+            // During draft, we want chronological order in DOM for final layout, 
+            // but we can scroll to bottom to see latest.
+            logData.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center text-slate-200 border-b border-slate-800/50 pb-1.5 animate-in fade-in slide-in-from-left";
+                div.innerHTML = `
+                    <div class="flex gap-2 items-center">
+                        <span class="font-black text-sm px-1.5 py-0.5 rounded bg-slate-800" style="color: ${item.color}">P${item.pick}</span>
+                        <span class="font-bold text-white text-base">${item.player}</span>
+                    </div>
+                    <span class="text-[10px] uppercase font-black text-slate-500">${item.team}</span>
+                `;
+                log.appendChild(div);
+            });
+            
+            // Scroll to bottom during draft
+            if (!document.getElementById('main-body').classList.contains('completed')) {
+                log.scrollTop = log.scrollHeight;
+            }
+        }
+
+        function exportToClipboard() {
+            let output = "UFA LEAGUE 2026 - OFFICIAL DRAFT RESULTS\n";
+            output += "========================================\n\n";
+            
+            output += "TEAM ROSTERS:\n";
+            teams.forEach(t => {
+                output += `\n[ ${t.name} ]\n`;
+                t.players.forEach((p, i) => {
+                    output += `${i+1}. ${p.name} (${p.pickedInRound === 0 ? 'Anchor' : 'Pick ' + p.pickedInRound})\n`;
+                });
+            });
+
+            output += "\n\nDRAFT PICK ORDER:\n";
+            logData.forEach(l => {
+                output += `Pick ${l.pick}: ${l.player} -> ${l.team} (Round ${l.round})\n`;
+            });
+
+            const el = document.createElement('textarea');
+            el.value = output;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+
+            const status = document.getElementById('draft-status');
+            const originalText = status.innerText;
+            status.innerText = "COPIED TO CLIPBOARD!";
+            status.style.background = "#10b981";
+            setTimeout(() => {
+                status.innerText = "EXPORT DRAFT";
+                status.style.background = "var(--ufa-gold)";
+                status.style.color = "var(--ufa-navy)";
+            }, 2000);
         }
 
         function updateDraftState() {
@@ -428,9 +512,19 @@
             
             if (phase === 'DRAFT') {
                 if (count >= 39) {
-                    document.getElementById('draft-status').innerText = "DRAFT COMPLETE";
+                    const status = document.getElementById('draft-status');
+                    status.innerText = "DRAFT COMPLETE";
+                    status.classList.add('btn-export');
+                    
+                    // Button interaction
+                    status.onmouseover = () => { status.innerText = "EXPORT DRAFT"; };
+                    status.onmouseout = () => { status.innerText = "DRAFT COMPLETE"; };
+                    status.onclick = exportToClipboard;
+
                     document.getElementById('main-body').classList.add('completed');
                     document.getElementById('view-mode').innerText = "SEASON 1 FINAL ROSTERS";
+                    renderTeams(); 
+                    renderLog();
                     return;
                 }
 
